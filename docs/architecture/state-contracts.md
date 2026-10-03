@@ -2,7 +2,7 @@
 
 - **Status:** Proposed contract for future implementation
 - **Contract family:** `keystone.state`
-- **Document version:** `0.1.0`
+- **Document version:** `0.1.1`
 - **Fingerprint version defined here:** `F1` (`keystone/fingerprint/v1`)
 - **Scope:** Sprint 1, Task A1.01
 - **Implementation status:** Documentation only; no state adapter, queue, HTTP route or
@@ -235,9 +235,14 @@ not as semantic content fields:
   evidence;
 - raw-body digest, when retained under approved A2 policy;
 - receipt and processing timestamps, retry counts and response metadata;
-- the raw request bytes, signatures, authorization values and secrets;
 - later resolved base/head objects, analysis results, plan content and worker
   outcomes.
+
+Raw request bytes, signatures, authorization values and secrets MUST NOT be
+retained in durable admission records, outbox messages or diagnostics. Raw
+bytes are used only within the bounded authentication request lifetime;
+durable authentication evidence contains verification results and approved
+references, never credential values.
 
 A raw-body digest may be useful for forensic evidence or a provider-specific
 replay policy. It is not authoritative for semantic replay equality. Two
@@ -632,6 +637,7 @@ claims completion.
 |---|---|---|---|
 | `0.1.0` / 2026-10-03 | `ST-001`–`ST-008` | Initial A1.01 contract: delivery namespace, `F1` semantic replay, revision representations, immutable identities, atomic groups, commit-before-ack and unknown-outcome recovery. | Proposed for review. No runtime implementation or adopted storage schema exists. |
 | `0.1.0` / 2026-10-03 | `CHG-001` | Recorded the A2.2 alignment prerequisite: raw-body digest is separate request evidence; normalized semantic content decides same-delivery replay. | No external milestone draft was edited. A2 implementation must resolve this before consuming the contract. |
+| `0.1.1` / 2026-10-03 | `CHG-002` | Corrected the admission-evidence retention rule to prohibit durable raw requests, signatures, authorization values and secrets. | Review correction aligned with A2's bounded authentication lifetime and credential-free durable records. `F1` and delivery identity are unchanged. |
 
 An approved change must add a new history row and, when behavior changes, a
 new contract or fingerprint/schema version. Editing prose without preserving

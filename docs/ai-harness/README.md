@@ -8,11 +8,13 @@ permissions.
 
 ## Current product context
 
-The current checkout contains only a minimal README and this Harness. The
-product drafts describe a Go webhook control plane, atomic Build/Test/Push/
-Deploy jobs, ephemeral Kubernetes runners, Bazel-native daemonless OCI
-assembly, hybrid graph/path change detection, remote and repository caching,
-BEP telemetry and Bazel Aspect quality gates across five planned sprints.
+The current checkout contains this Harness, a root Go module with domain
+contracts and tests, and contributor pre-commit configuration. It does not yet
+contain the product runtime. The product drafts describe a Go webhook control
+plane, atomic Build/Test/Push/Deploy jobs, ephemeral Kubernetes runners,
+Bazel-native daemonless OCI assembly, hybrid graph/path change detection,
+remote and repository caching, BEP telemetry and Bazel Aspect quality gates
+across five planned sprints.
 
 Read spec.md and plan.md from their owning worktree when available. They may be
 untracked and outside this checkout; preserve their edits and do not copy,
@@ -61,6 +63,7 @@ proof of editor discovery or product runtime behavior.
 ~~~sh
 git diff --check
 rg --files .agents docs/ai-harness | sort
+pre-commit run --all-files --hook-stage pre-commit
 ~~~
 
 Use an available YAML parser to check that every file named
@@ -73,13 +76,19 @@ Search the committed Harness for unfinished placeholders, source-project names,
 provider-specific paths, private endpoints and personal configuration; allow
 source attribution only in provenance.
 
-There is no Go module, Bazel target, application test suite or Harness command
-in this checkout. If manifests are added later, derive checks from them:
-inspect touched Go files with gofmt -l, run applicable go test and go vet, use
-go test -race for affected concurrency paths when supported, and run Bazel only
-against real targets and configuration. Report unavailable commands instead of
-inventing success. Do not install repository tooling, add generators or create
-product scaffolding just to validate the Harness.
+The root module currently declares Go 1.27.1 and contains the domain test
+suite. Derive checks from the manifests that exist: inspect touched Go files
+with `gofmt -l`, run `go test -mod=readonly ./...` and
+`go vet -mod=readonly ./...`, use `go test -race` for affected concurrency
+paths when supported, and run Bazel only against real targets and
+configuration. Run commitlint separately with
+`pre-commit run commitlint --hook-stage commit-msg --commit-msg-filename
+<disposable-message-file>`; the file-stage all-files run does not validate a
+message. Report unavailable commands instead of inventing success. The
+pre-commit hooks cover repository hygiene and native Go checks, while the
+frontmatter, link, routing, and adapter-parity review above remains Harness
+consistency guidance. Do not install generators or create product scaffolding
+just to validate the Harness.
 
 ## Authority and maintenance
 

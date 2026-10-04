@@ -16,8 +16,22 @@ roles, manually synchronized host adapters and usage/provenance documentation.
 - The keystone-validation skill and scenario reference were authored for the
   five-sprint webhook, runner, change-selection, cache, BEP and quality-gate
   contracts. They are development and review guidance, not runtime code.
-- The assessed generator, linter, hooks, CI automation, extra host trees and
+- Harness-specific generators, linters, CI automation, extra host trees and
   autonomous workflows remain deferred.
+
+## Contributor hook adoption
+
+Keystone now includes a root `.pre-commit-config.yaml` and
+`.commitlintrc.yaml`. They were designed after comparing the local bff
+configuration with Kandev's public configuration, then narrowed to Keystone's
+actual root Go module. Public hygiene hooks and commitlint use immutable
+upstream revisions; native `gofmt`, `go vet`, and `go test` run from the module
+root. No Bazel, pnpm, frontend, generator, private endpoint or infrastructure
+dependency was imported from either reference.
+
+The hooks are contributor feedback installed per clone. They can be bypassed
+and do not provide server-side enforcement; a future CI policy is a separate
+decision.
 
 ## Product alignment
 
@@ -36,10 +50,11 @@ change.
 ## Excluded material
 
 No product source, runtime worker, Kubernetes manifest, Bazel workspace,
-deployment resource, CI automation, copied product draft, credential, private
-host, personal path, live provider, registry or cache integration was imported.
-No Docker-in-Docker behavior, fixed version pin, namespace, service account or
-backend choice was inferred from the source Harness.
+deployment resource, product CI workflow, copied product draft, credential,
+private host, personal path, live provider, registry or cache integration was
+imported. The repository-level contributor hooks are the deliberate tooling
+addition described above. No Docker-in-Docker behavior, namespace, service
+account or backend choice was inferred from the source Harness.
 
 ## Rights and maintenance
 

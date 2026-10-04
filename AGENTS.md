@@ -4,8 +4,9 @@
 
 The current repository is `keystone`; the selected product name is Keystone,
 with the descriptor “delta-aware CI orchestration for Bazel monorepos.” The
-checkout contains repository guidance and a README, but no product runtime or
-build implementation yet. The planned product is a Go control plane for
+checkout contains repository guidance, a root Go module, and domain contracts
+and tests, but no product runtime or build implementation yet. The planned
+product is a Go control plane for
 webhook-driven Build, Test, Push and Deploy jobs, ephemeral Kubernetes
 runners, Bazel-native daemonless OCI assembly, hybrid change detection,
 caching, BEP telemetry and quality gates.
@@ -71,20 +72,26 @@ exists in this checkout.
 
 ## Go and Bazel development
 
-There is currently no Go module, Bazel workspace/module, BUILD configuration,
-application code or test suite in this checkout. When implementation begins,
-derive commands from the manifests and documentation that actually exist:
-inspect touched Go files with `gofmt -l`, run applicable `go test` and `go vet`,
-and use `go test -race` only for affected concurrency paths when supported.
-Run Bazel checks only against real targets and selected configuration. Do not
-scaffold product files or claim application checks passed to complete Harness
-work.
+The checkout currently has a root Go module declared for Go 1.27.1, with domain
+code and tests, but no Bazel workspace/module, BUILD configuration or product
+runtime. From the repository root, inspect touched Go files with `gofmt -l`,
+run `go test -mod=readonly ./...` and `go vet -mod=readonly ./...`, and use
+`go test -race` only for affected concurrency paths when supported. The
+repository pre-commit configuration runs `gofmt`, vet and test for each
+pre-commit invocation and validates commit messages in the separate
+`commit-msg` stage. Install both stages in each clone; local hooks can be
+bypassed and are not server-side enforcement. Run Bazel checks only against
+real targets and selected configuration. Do not scaffold product files or
+claim application checks passed to complete Harness work.
 
 ## Harness checks
 
 Review skills, templates and host adapters together. Check frontmatter,
 skill-name/directory agreement, local Markdown links, routing, supported
 metadata, template/adapter body parity and orphaned files. Run `git diff --check`
-and inspect tracked plus untracked files. These checks establish local
-consistency; they do not prove editor discovery, host schema support, account
-access, model behavior or runtime safety.
+and inspect tracked plus untracked files. Run
+`pre-commit run --all-files --hook-stage pre-commit` after installing the
+repository hooks, and exercise commitlint separately with a disposable message
+file. These checks establish local consistency; they do not prove editor
+discovery, host schema support, account access, model behavior or runtime
+safety.

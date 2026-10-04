@@ -48,12 +48,16 @@ func (p PendingResolution) Validate() error {
 	if len(p.RequiredEvidence) == 0 || len(p.RequiredEvidence) > maxListEntries {
 		return invalid("required_evidence", "invalid_count", "pending resolution must name required evidence")
 	}
-	seen := make(map[string]struct{}, len(p.RequiredEvidence))
+	type evidenceKey struct {
+		ID      EvidenceID
+		Version string
+	}
+	seen := make(map[evidenceKey]struct{}, len(p.RequiredEvidence))
 	for index, evidence := range p.RequiredEvidence {
 		if err := evidence.Validate(); err != nil {
 			return prefixError("required_evidence", prefixError(indexPath(index), err))
 		}
-		key := string(evidence.ID) + ":" + evidence.Version
+		key := evidenceKey{ID: evidence.ID, Version: evidence.Version}
 		if _, exists := seen[key]; exists {
 			return invalid("required_evidence", "duplicate_value", "pending resolution contains duplicate evidence")
 		}

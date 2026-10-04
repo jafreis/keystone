@@ -153,7 +153,11 @@ func TestRunRejectsMalformedOriginsAndUntrustedIntentChanges(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			candidate := original
 			test.mutate(&candidate)
-			if err := candidate.ValidateAgainst(event, revision, trusted, &original); err == nil {
+			var source []*Run
+			if candidate.Origin.Kind == RunOriginDeliberateRerun {
+				source = []*Run{&original}
+			}
+			if err := candidate.ValidateAgainst(event, revision, trusted, source...); err == nil {
 				t.Fatal("untrusted or malformed run was accepted")
 			}
 		})

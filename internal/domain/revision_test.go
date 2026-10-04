@@ -158,6 +158,25 @@ func TestPendingAndFailedRevisionsRetainUnresolvedBase(t *testing.T) {
 	}
 }
 
+func TestPendingResolutionDistinguishesEvidenceIdentityTuples(t *testing.T) {
+	pending := PendingResolution{
+		Reason: "base_unavailable",
+		RequiredEvidence: []EvidenceReference{
+			{ID: "resolver:request", Version: "v1"},
+			{ID: "resolver", Version: "request:v1"},
+		},
+	}
+	if err := pending.Validate(); err != nil {
+		t.Fatalf("distinct evidence tuples rejected: %v", err)
+	}
+
+	pending.RequiredEvidence[1] = pending.RequiredEvidence[0]
+	pending.RequiredEvidence[1].Digest = "different-digest"
+	if err := pending.Validate(); err == nil {
+		t.Fatal("duplicate evidence identity accepted with a different digest")
+	}
+}
+
 func TestRevisionContextBindsToEventAndPullRequestSource(t *testing.T) {
 	event := testPullRequestEvent(ProviderRepositoryIdentity{Provider: testProvider(), ID: "fork-repo"})
 	revision := testRevision(RevisionStatePending)

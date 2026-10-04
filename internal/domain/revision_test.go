@@ -115,6 +115,9 @@ func TestRevisionContextRequiresCompleteResolvedEvidence(t *testing.T) {
 		{name: "missing head evidence", mutate: func(revision *RevisionContext) {
 			revision.Resolved.HeadEvidence = ObjectVerificationEvidence{}
 		}},
+		{name: "unverified object evidence", mutate: func(revision *RevisionContext) {
+			revision.Resolved.BaseEvidence.Verified = false
+		}},
 		{name: "missing strategy", mutate: func(revision *RevisionContext) {
 			revision.Strategy = ResolverStrategyReference{}
 		}},

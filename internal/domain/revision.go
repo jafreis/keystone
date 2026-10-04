@@ -234,6 +234,9 @@ func (r RevisionContext) Validate() error {
 
 func (r RevisionContext) validateResolved() error {
 	resolved := r.Resolved
+	if err := resolved.Validate(); err != nil {
+		return prefixError("resolved", err)
+	}
 	if !resolved.Head.Equal(r.Head) {
 		return invalid("resolved.head", "mismatch", "resolved head does not match the admitted head")
 	}

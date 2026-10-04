@@ -186,6 +186,51 @@ func TestRerunCannotPromotePendingSourceToResolved(t *testing.T) {
 	}
 }
 
+func TestCrossContractValidationKeepsForkAndTrustedAuthoritySeparate(t *testing.T) {
+	fork := ProviderRepositoryIdentity{Provider: testProvider(), ID: "fork-repo"}
+	event := testPullRequestEvent(fork)
+	revision := testRevision(RevisionStatePending)
+	revision.Binding = event.Binding
+	revision.EventKind = event.Kind
+	source := event.PullRequest.Source
+	revision.SourceRepository = &source
+	revision.Head = event.Head
+	revision.Base = event.Base
+	revision.Comparison = event.Comparison
+	run := testOriginalRun(event, revision)
+	trusted := testTrustedRunBinding(event)
+	if err := run.ValidateAgainst(event, revision, trusted); err != nil {
+		t.Fatalf("fork event chain rejected: %v", err)
+	}
+	if run.Repository.ProviderRepository.ID == fork.ID {
+		t.Fatal("fork source was promoted to the registered target repository")
+	}
+
+	cases := []struct {
+		name   string
+		mutate func(*Run)
+	}{
+		{name: "policy reference", mutate: func(candidate *Run) {
+			candidate.Policy.ID = "untrusted-policy"
+		}},
+		{name: "trust reference", mutate: func(candidate *Run) {
+			candidate.Trust.ID = "untrusted-trust"
+		}},
+		{name: "profile reference", mutate: func(candidate *Run) {
+			candidate.Approved.Profile.Digest = "sha256-attacker"
+		}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			candidate := run
+			test.mutate(&candidate)
+			if err := candidate.ValidateAgainst(event, revision, trusted); err == nil {
+				t.Fatal("payload-controlled trusted reference was accepted")
+			}
+		})
+	}
+}
+
 func TestRunStrictDecodeRejectsNestedSchemaAndTrailingData(t *testing.T) {
 	event := testPushEvent(NullCommitCandidate())
 	run := testOriginalRun(event, testRevision(RevisionStatePending))

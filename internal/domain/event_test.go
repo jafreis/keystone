@@ -188,6 +188,8 @@ func TestRepositoryEventStrictDecodeRejectsUnsupportedAndAmbiguousJSON(t *testin
 	for index, input := range cases {
 		if _, err := DecodeRepositoryEvent([]byte(input)); err == nil {
 			t.Fatalf("case %d was accepted", index)
+		} else if strings.Contains(err.Error(), "secret") || strings.Contains(err.Error(), "example.invalid") {
+			t.Fatalf("case %d echoed unsafe input: %v", index, err)
 		}
 	}
 

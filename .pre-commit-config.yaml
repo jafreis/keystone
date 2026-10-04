@@ -58,3 +58,18 @@ repos:
         pass_filenames: false
         require_serial: true
         always_run: true
+      - id: commit-message-guard-tests
+        name: commit message guard tests
+        entry: python3 hooks/test_check_nonempty_commit_message.py
+        language: system
+        pass_filenames: false
+        require_serial: true
+        always_run: true
+      # commitlint skips blank input, so reject blank and comment-only files explicitly.
+      - id: commit-message-not-empty
+        name: require a non-empty commit message
+        entry: python3 hooks/check_nonempty_commit_message.py
+        language: system
+        stages: [commit-msg]
+        pass_filenames: true
+        always_run: true

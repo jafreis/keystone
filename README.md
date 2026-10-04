@@ -45,6 +45,9 @@ pre-commit run commitlint --hook-stage commit-msg \
   --commit-msg-filename /path/to/message-file
 ~~~
 
+The `commit-msg` stage also rejects empty or comment-only messages before they
+can bypass commitlint's empty-input handling.
+
 Conventional Commit types include `build`, `chore`, `ci`, `docs`, `feat`,
 `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. Scopes are optional,
 breaking changes use the usual `!` or footer syntax, and headers are limited

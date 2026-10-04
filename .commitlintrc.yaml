@@ -1,0 +1,8 @@
+extends:
+  - "@commitlint/config-conventional"
+
+# Keep commitlint's built-in ignores for generated merge, revert, fixup and
+# squash messages. Ordinary commits must use the Conventional Commits rules.
+defaultIgnores: true
+rules:
+  header-max-length: [2, always, 100]

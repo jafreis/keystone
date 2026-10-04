@@ -151,31 +151,35 @@ type ResolutionAttemptID string
 type PlanID string
 type ContentDigest string
 
-func (v ProviderKind) Validate() error             { return validateID("provider_kind", string(v)) }
-func (v IntegrationID) Validate() error            { return validateID("integration_id", string(v)) }
-func (v RegisteredRepositoryID) Validate() error   { return validateID("registered_repository_id", string(v)) }
-func (v ProviderRepositoryID) Validate() error     { return validateID("provider_repository_id", string(v)) }
-func (v DeliveryID) Validate() error               { return validateID("delivery_id", string(v)) }
-func (v PullRequestID) Validate() error            { return validateID("pull_request_id", string(v)) }
-func (v RevisionID) Validate() error               { return validateID("revision_id", string(v)) }
-func (v RunID) Validate() error                    { return validateID("run_id", string(v)) }
-func (v RerunRequestID) Validate() error           { return validateID("rerun_request_id", string(v)) }
-func (v AuthorityID) Validate() error              { return validateID("authority_id", string(v)) }
-func (v PolicyID) Validate() error                 { return validateID("policy_id", string(v)) }
-func (v ConfigurationID) Validate() error           { return validateID("configuration_id", string(v)) }
-func (v TrustID) Validate() error                  { return validateID("trust_id", string(v)) }
-func (v StrategyID) Validate() error               { return validateID("strategy_id", string(v)) }
-func (v EvidenceID) Validate() error               { return validateID("evidence_id", string(v)) }
-func (v ResolutionAttemptID) Validate() error      { return validateID("resolution_attempt_id", string(v)) }
-func (v PlanID) Validate() error                   { return validateID("plan_id", string(v)) }
-func (v ContentDigest) Validate() error            { return validateOptionalDigest("digest", string(v)) }
+func (v ProviderKind) Validate() error  { return validateID("provider_kind", string(v)) }
+func (v IntegrationID) Validate() error { return validateID("integration_id", string(v)) }
+func (v RegisteredRepositoryID) Validate() error {
+	return validateID("registered_repository_id", string(v))
+}
+func (v ProviderRepositoryID) Validate() error {
+	return validateID("provider_repository_id", string(v))
+}
+func (v DeliveryID) Validate() error          { return validateID("delivery_id", string(v)) }
+func (v PullRequestID) Validate() error       { return validateID("pull_request_id", string(v)) }
+func (v RevisionID) Validate() error          { return validateID("revision_id", string(v)) }
+func (v RunID) Validate() error               { return validateID("run_id", string(v)) }
+func (v RerunRequestID) Validate() error      { return validateID("rerun_request_id", string(v)) }
+func (v AuthorityID) Validate() error         { return validateID("authority_id", string(v)) }
+func (v PolicyID) Validate() error            { return validateID("policy_id", string(v)) }
+func (v ConfigurationID) Validate() error     { return validateID("configuration_id", string(v)) }
+func (v TrustID) Validate() error             { return validateID("trust_id", string(v)) }
+func (v StrategyID) Validate() error          { return validateID("strategy_id", string(v)) }
+func (v EvidenceID) Validate() error          { return validateID("evidence_id", string(v)) }
+func (v ResolutionAttemptID) Validate() error { return validateID("resolution_attempt_id", string(v)) }
+func (v PlanID) Validate() error              { return validateID("plan_id", string(v)) }
+func (v ContentDigest) Validate() error       { return validateOptionalDigest("digest", string(v)) }
 
 type ProvenanceSource string
 
 const (
 	ProvenanceProviderPayload ProvenanceSource = "provider_payload"
 	ProvenanceTrustedBinding  ProvenanceSource = "trusted_binding"
-	ProvenanceAdapterDerived   ProvenanceSource = "adapter_derived"
+	ProvenanceAdapterDerived  ProvenanceSource = "adapter_derived"
 )
 
 func (p ProvenanceSource) Validate() error {
@@ -203,7 +207,7 @@ func (p FieldProvenance) Validate() error {
 
 // ProviderIdentity is the namespace for provider-local identities.
 type ProviderIdentity struct {
-	Kind        ProviderKind `json:"kind"`
+	Kind        ProviderKind  `json:"kind"`
 	Integration IntegrationID `json:"integration"`
 }
 
@@ -222,7 +226,7 @@ func (p ProviderIdentity) Equal(other ProviderIdentity) bool {
 }
 
 type ProviderRepositoryIdentity struct {
-	Provider ProviderIdentity    `json:"provider"`
+	Provider ProviderIdentity     `json:"provider"`
 	ID       ProviderRepositoryID `json:"id"`
 }
 
@@ -262,9 +266,9 @@ func (r RepositoryBinding) Equal(other RepositoryBinding) bool {
 }
 
 type DeliveryKey struct {
-	Provider                 ProviderIdentity      `json:"provider"`
-	RegisteredRepositoryID   RegisteredRepositoryID `json:"registered_repository_id"`
-	DeliveryID              DeliveryID             `json:"delivery_id"`
+	Provider               ProviderIdentity       `json:"provider"`
+	RegisteredRepositoryID RegisteredRepositoryID `json:"registered_repository_id"`
+	DeliveryID             DeliveryID             `json:"delivery_id"`
 }
 
 func (d DeliveryKey) Validate() error {
@@ -297,7 +301,7 @@ const (
 // abbreviated hash, and constructing one does not resolve anything in Git.
 type CommitID struct {
 	Format CommitObjectFormat `json:"format"`
-	Hash   string              `json:"hash"`
+	Hash   string             `json:"hash"`
 }
 
 func (c CommitID) Validate() error {
@@ -356,8 +360,8 @@ func (c *CommitID) UnmarshalJSON(data []byte) error {
 }
 
 type EvidenceReference struct {
-	ID      EvidenceID  `json:"id"`
-	Version string      `json:"version"`
+	ID      EvidenceID    `json:"id"`
+	Version string        `json:"version"`
 	Digest  ContentDigest `json:"digest,omitempty"`
 }
 
@@ -375,8 +379,8 @@ func (r EvidenceReference) Validate() error {
 }
 
 type PolicyReference struct {
-	ID      PolicyID     `json:"id"`
-	Version string       `json:"version"`
+	ID      PolicyID      `json:"id"`
+	Version string        `json:"version"`
 	Digest  ContentDigest `json:"digest,omitempty"`
 }
 
@@ -396,7 +400,7 @@ func (r PolicyReference) Validate() error {
 type ConfigurationReference struct {
 	ID      ConfigurationID `json:"id"`
 	Version string          `json:"version"`
-	Digest  ContentDigest  `json:"digest,omitempty"`
+	Digest  ContentDigest   `json:"digest,omitempty"`
 }
 
 func (r ConfigurationReference) Validate() error {
@@ -427,8 +431,8 @@ func (r ConfigurationReference) Equal(other ConfigurationReference) bool {
 }
 
 type TrustReference struct {
-	ID      TrustID      `json:"id"`
-	Version string       `json:"version"`
+	ID      TrustID       `json:"id"`
+	Version string        `json:"version"`
 	Digest  ContentDigest `json:"digest,omitempty"`
 }
 

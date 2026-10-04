@@ -29,9 +29,9 @@ func TestTypedIdentityValidation(t *testing.T) {
 
 func TestDeliveryKeyKeepsProviderAndRepositoryNamespaces(t *testing.T) {
 	first := DeliveryKey{
-		Provider: ProviderIdentity{Kind: "github", Integration: "integration-a"},
+		Provider:               ProviderIdentity{Kind: "github", Integration: "integration-a"},
 		RegisteredRepositoryID: "repo-a",
-		DeliveryID:            "delivery-1",
+		DeliveryID:             "delivery-1",
 	}
 	second := first
 	second.Provider.Integration = "integration-b"

@@ -180,6 +180,7 @@ func (s LifecycleState) Validate() error {
 type TrustedRunBinding struct {
 	Repository      RepositoryBinding
 	ApprovedProfile ConfigurationReference
+	ApprovedMatrix  []ConfigurationReference
 	Policy          PolicyReference
 	Trust           TrustReference
 	RerunAuthority  *AuthorityReference
@@ -191,6 +192,14 @@ func (b TrustedRunBinding) Validate() error {
 	}
 	if err := b.ApprovedProfile.ValidateWithDigest(); err != nil {
 		return prefixError("approved_profile", err)
+	}
+	if len(b.ApprovedMatrix) == 0 || len(b.ApprovedMatrix) > maxListEntries {
+		return invalid("approved_matrix", "invalid_count", "trusted configuration must contain a bounded matrix")
+	}
+	for index, entry := range b.ApprovedMatrix {
+		if err := entry.ValidateWithDigest(); err != nil {
+			return prefixError("approved_matrix", prefixError(indexPath(index), err))
+		}
 	}
 	if err := b.Policy.Validate(); err != nil {
 		return prefixError("policy", err)
@@ -228,6 +237,18 @@ func referencesAgree(recordedID, recordedVersion string, recordedDigest ContentD
 		return false
 	}
 	return recordedDigest == "" || expectedDigest == "" || recordedDigest == expectedDigest
+}
+
+func configurationMatrixEqual(first, second []ConfigurationReference) bool {
+	if len(first) != len(second) {
+		return false
+	}
+	for index := range first {
+		if first[index] != second[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func (r Run) Validate() error {
@@ -338,6 +359,9 @@ func (r Run) ValidateAgainst(event RepositoryEvent, revision RevisionContext, tr
 	if r.Approved.Profile != trusted.ApprovedProfile {
 		return invalid("approved_configuration.profile", "mismatch", "run profile does not match trusted configuration")
 	}
+	if !configurationMatrixEqual(r.Approved.Matrix, trusted.ApprovedMatrix) {
+		return invalid("approved_configuration.matrix", "mismatch", "run matrix does not match trusted configuration")
+	}
 	if r.Policy != trusted.Policy {
 		return invalid("policy", "mismatch", "run policy does not match trusted policy")
 	}
@@ -370,6 +394,12 @@ func (r Run) ValidateAgainst(event RepositoryEvent, revision RevisionContext, tr
 	}
 	if !prior.Approved.Profile.Equal(r.Approved.Profile) {
 		return invalid("approved_configuration.profile", "mismatch", "rerun changed the approved profile")
+	}
+	if !configurationMatrixEqual(prior.Approved.Matrix, r.Approved.Matrix) {
+		return invalid("approved_configuration.matrix", "mismatch", "rerun changed the approved matrix")
+	}
+	if !reflect.DeepEqual(prior.Revision, r.Revision) {
+		return invalid("revision", "mismatch", "rerun changed the source revision context")
 	}
 	if !prior.Revision.Head.Equal(r.Revision.Head) {
 		return invalid("revision.head", "mismatch", "rerun changed the immutable head")

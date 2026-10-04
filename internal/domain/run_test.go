@@ -55,6 +55,7 @@ func testTrustedRunBinding(event RepositoryEvent) TrustedRunBinding {
 	return TrustedRunBinding{
 		Repository:      event.Binding,
 		ApprovedProfile: testApprovedConfiguration().Profile,
+		ApprovedMatrix:  testApprovedConfiguration().Matrix,
 		Policy:          testPolicy(),
 		Trust:           testTrust(),
 		RerunAuthority:  &authority,
@@ -165,6 +166,53 @@ func TestRunRejectsMalformedOriginsAndUntrustedIntentChanges(t *testing.T) {
 
 	if err := original.ValidateAgainst(event, revision, trusted, &original); err == nil {
 		t.Fatal("original delivery accepted an unrelated source run")
+	}
+}
+
+func TestRunRejectsApprovedConfigurationMatrixTampering(t *testing.T) {
+	event := testPushEvent(NullCommitCandidate())
+	revision := testRevision(RevisionStatePending)
+	run := testOriginalRun(event, revision)
+	run.Approved.Matrix[0] = ConfigurationReference{
+		ID:      "unapproved-target",
+		Version: "v99",
+		Digest:  "sha256-attacker",
+	}
+
+	if err := run.ValidateAgainst(event, revision, testTrustedRunBinding(event)); err == nil {
+		t.Fatal("run with a payload-controlled approved matrix entry was accepted")
+	}
+}
+
+func TestRerunCannotChangeResolvedBaseUnderSameRevisionID(t *testing.T) {
+	event := testPushEvent(NullCommitCandidate())
+	prior := testOriginalRun(event, testRevision(RevisionStateResolved))
+	trusted := testTrustedRunBinding(event)
+	candidate := prior
+	candidate.ID = "run-rerun"
+	candidate.Revision = testRevision(RevisionStateResolved)
+	changedBase := testCommit("abcdefabcdefabcdefabcdefabcdefabcdefabcd")
+	candidate.Revision.Resolved.Base = changedBase
+	candidate.Revision.Resolved.BaseEvidence = testObjectEvidence(
+		event.Binding.ProviderRepository,
+		changedBase,
+		"replacement-base-evidence",
+	)
+	candidate.Origin = RunOrigin{
+		Kind: RunOriginDeliberateRerun,
+		Rerun: &RerunOrigin{
+			Request: RerunRequestKey{
+				Authority:              *trusted.RerunAuthority,
+				RegisteredRepositoryID: event.Binding.RegisteredRepositoryID,
+				RequestID:              "rerun-request-base-change",
+			},
+			SourceRunID:    prior.ID,
+			SourceDelivery: event.DeliveryKey(),
+		},
+	}
+
+	if err := candidate.ValidateAgainst(event, candidate.Revision, trusted, &prior); err == nil {
+		t.Fatal("resolved rerun changed its source base under the same revision identity")
 	}
 }
 

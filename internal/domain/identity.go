@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 )
 
@@ -509,6 +510,9 @@ func decodeStrict(data []byte, destination any) error {
 	if _, err := structure.Token(); err != io.EOF {
 		return invalid("", "invalid_json", "normalized JSON contains trailing data")
 	}
+	if err := validateExactJSONFields(data, reflect.TypeOf(destination)); err != nil {
+		return invalid("", "invalid_json", "normalized JSON does not match the contract")
+	}
 
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -517,6 +521,79 @@ func decodeStrict(data []byte, destination any) error {
 	}
 	if _, err := decoder.Token(); err != io.EOF {
 		return invalid("", "invalid_json", "normalized JSON contains trailing data")
+	}
+	return nil
+}
+
+var jsonUnmarshalerType = reflect.TypeOf((*json.Unmarshaler)(nil)).Elem()
+
+// encoding/json matches struct field names case-insensitively. Normalized
+// contracts use fixed field names, so perform an exact tag check before the
+// standard decoder to reject aliases such as "ID" for "id".
+func validateExactJSONFields(data []byte, valueType reflect.Type) error {
+	if valueType == nil {
+		return nil
+	}
+	if valueType.Kind() == reflect.Pointer {
+		if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+			return nil
+		}
+		return validateExactJSONFields(data, valueType.Elem())
+	}
+	if valueType.Implements(jsonUnmarshalerType) || reflect.PointerTo(valueType).Implements(jsonUnmarshalerType) {
+		return nil
+	}
+	if bytes.Equal(bytes.TrimSpace(data), []byte("null")) {
+		return nil
+	}
+
+	switch valueType.Kind() {
+	case reflect.Struct:
+		fields := make(map[string]json.RawMessage)
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		if err := decoder.Decode(&fields); err != nil {
+			return err
+		}
+		allowed := make(map[string]reflect.Type, valueType.NumField())
+		for index := 0; index < valueType.NumField(); index++ {
+			field := valueType.Field(index)
+			if field.PkgPath != "" {
+				continue
+			}
+			name := field.Tag.Get("json")
+			if name == "-" {
+				continue
+			}
+			if comma := strings.IndexByte(name, ','); comma >= 0 {
+				name = name[:comma]
+			}
+			if name == "" {
+				name = field.Name
+			}
+			allowed[name] = field.Type
+		}
+		for name, raw := range fields {
+			fieldType, ok := allowed[name]
+			if !ok {
+				return errors.New("unknown normalized field")
+			}
+			if err := validateExactJSONFields(raw, fieldType); err != nil {
+				return err
+			}
+		}
+	case reflect.Slice, reflect.Array:
+		var values []json.RawMessage
+		decoder := json.NewDecoder(bytes.NewReader(data))
+		if err := decoder.Decode(&values); err != nil {
+			return err
+		}
+		for _, raw := range values {
+			if err := validateExactJSONFields(raw, valueType.Elem()); err != nil {
+				return err
+			}
+		}
+	case reflect.Map, reflect.Interface:
+		return nil
 	}
 	return nil
 }

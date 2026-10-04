@@ -182,6 +182,7 @@ func TestRepositoryEventStrictDecodeRejectsUnsupportedAndAmbiguousJSON(t *testin
 		string(valid[:len(valid)-1]) + `,"raw_body":"payload"}`,
 		strings.Replace(string(valid), `"schema_version":1`, `"schema_version":99`, 1),
 		strings.Replace(string(valid), `"delivery":{"id":"delivery-1"`, `"delivery":{"id":"delivery-1","id":"delivery-2"`, 1),
+		strings.Replace(string(valid), `"delivery":{"id":"delivery-1"`, `"delivery":{"id":"delivery-1","ID":"delivery-2"`, 1),
 		string(valid) + ` {"trailing":true}`,
 		`{"schema_version":1}`,
 	}

@@ -156,6 +156,17 @@ func TestExecutionPlanSameIdentityConflictsAndFailedDecodePreservesReceiver(t *t
 	if _, err := NewExecutionPlan(changed); err == nil {
 		t.Fatal("changed plan unexpectedly remained valid")
 	}
+	changed = input
+	changed.Jobs = append([]JobSpecInput(nil), input.Jobs...)
+	changed.Jobs[1] = cloneValue(changed.Jobs[1])
+	changed.Jobs[1].Input.BazelBuild.Labels = []string{"//services/other:image"}
+	conflicting, err := NewExecutionPlan(changed)
+	if err != nil {
+		t.Fatalf("changed plan fixture: %v", err)
+	}
+	if err := CompareExecutionPlans(first, conflicting); err == nil {
+		t.Fatal("same plan identity with changed content was accepted")
+	}
 
 	encoded, err := json.Marshal(first)
 	if err != nil {

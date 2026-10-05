@@ -147,6 +147,22 @@ func TestJobSpecSnapshotsDefensivelyCopyInputsAndPreserveOperationSemantics(t *t
 	if bytes.Equal(job.CanonicalBytes(), other.CanonicalBytes()) {
 		t.Fatal("run mutation did not change canonical job projection")
 	}
+
+	ordered := testJobInput(OperationBazelTest)
+	ordered.Input.BazelTest.Labels = []string{"//services/api:test", "//services/web:test"}
+	reordered := cloneValue(ordered)
+	reordered.Input.BazelTest.Labels[0], reordered.Input.BazelTest.Labels[1] = reordered.Input.BazelTest.Labels[1], reordered.Input.BazelTest.Labels[0]
+	orderedJob, err := NewJobSpec(ordered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reorderedJob, err := NewJobSpec(reordered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if orderedJob.Digest() == reorderedJob.Digest() || orderedJob.OperationKey() == reorderedJob.OperationKey() {
+		t.Fatal("semantic list reorder did not change identity")
+	}
 }
 
 func TestJobSpecDecodeRejectsTamperedDigestAndLeavesReceiver(t *testing.T) {

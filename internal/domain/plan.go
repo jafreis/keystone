@@ -187,6 +187,7 @@ type ExecutionPlan struct {
 }
 
 func NewExecutionPlan(input ExecutionPlanInput) (ExecutionPlan, error) {
+	input = normalizeExecutionPlanInput(input)
 	if err := input.Validate(); err != nil {
 		return ExecutionPlan{}, err
 	}
@@ -210,7 +211,7 @@ func NewExecutionPlan(input ExecutionPlanInput) (ExecutionPlan, error) {
 		if !reflect.DeepEqual(job.input.Revision, input.Revision) {
 			return ExecutionPlan{}, invalid("jobs", "scope_mismatch", "job uses another revision context")
 		}
-		if !job.input.Configuration.Equal(input.Configuration.Profile) {
+		if !configurationInSnapshot(input.Configuration, job.input.Configuration) {
 			return ExecutionPlan{}, invalid("jobs", "scope_mismatch", "job uses another configuration")
 		}
 		if job.input.Policy != input.Policy || job.input.Trust != input.Trust {
@@ -250,6 +251,25 @@ func NewExecutionPlan(input ExecutionPlanInput) (ExecutionPlan, error) {
 	return result, nil
 }
 
+func normalizeExecutionPlanInput(input ExecutionPlanInput) ExecutionPlanInput {
+	if input.RequiredGates == nil {
+		input.RequiredGates = []GateReference{}
+	}
+	if input.Jobs == nil {
+		input.Jobs = []JobSpecInput{}
+	}
+	return input
+}
+
+func configurationInSnapshot(snapshot ConfigurationSnapshot, selected ConfigurationReference) bool {
+	for _, entry := range snapshot.Matrix {
+		if entry.Equal(selected) {
+			return true
+		}
+	}
+	return false
+}
+
 func validateAcyclic(jobs []JobSpec, byID map[JobID]JobSpec) error {
 	state := make(map[JobID]uint8, len(jobs))
 	var visit func(JobID) error
@@ -281,14 +301,14 @@ func isPrerequisite(candidate, dependent JobID, byID map[JobID]JobSpec) bool {
 	seen := map[JobID]struct{}{}
 	var walk func(JobID) bool
 	walk = func(id JobID) bool {
-		if id == candidate {
-			return true
-		}
 		if _, exists := seen[id]; exists {
 			return false
 		}
 		seen[id] = struct{}{}
 		for _, dependency := range byID[id].Dependencies() {
+			if dependency == candidate {
+				return true
+			}
 			if walk(dependency) {
 				return true
 			}
@@ -521,6 +541,17 @@ func (p ExecutionPlan) ValidateAgainst(run Run, trusted TrustedPlanBinding) erro
 	if run.Plan != nil && !reflect.DeepEqual(*run.Plan, p.Reference()) {
 		return invalid("run.plan", "mismatch", "plan does not match the run attachment")
 	}
+	if len(trusted.ApprovedExecutors) == 0 || len(trusted.ApprovedProfiles) == 0 {
+		return invalid("trusted_binding", "unapproved", "trusted executor and profile approvals are required")
+	}
+	if len(p.input.RequiredGates) > 0 && len(trusted.ApprovedGates) == 0 {
+		return invalid("approved_gates", "unapproved", "required gates need explicit approvals")
+	}
+	for index, gate := range p.input.RequiredGates {
+		if !containsGate(trusted.ApprovedGates, gate) {
+			return prefixError("required_gates", prefixError(indexPath(index), invalid("gate", "unapproved", "required plan gate is not approved")))
+		}
+	}
 	for index, job := range p.jobs {
 		if err := job.validateAgainst(run, trusted); err != nil {
 			return prefixError("jobs", prefixError(indexPath(index), err))
@@ -530,25 +561,37 @@ func (p ExecutionPlan) ValidateAgainst(run Run, trusted TrustedPlanBinding) erro
 }
 
 func (j JobSpec) validateAgainst(run Run, trusted TrustedPlanBinding) error {
+	if err := run.Validate(); err != nil {
+		return prefixError("run", err)
+	}
+	if err := trusted.Validate(); err != nil {
+		return prefixError("trusted_binding", err)
+	}
 	if j.RunID() != run.ID || !j.input.Repository.Equal(run.Repository) || !reflect.DeepEqual(j.input.Revision, run.Revision) {
 		return invalid("job", "mismatch", "job does not match the supplied run")
+	}
+	if !trusted.Repository.Equal(run.Repository) || !reflect.DeepEqual(trusted.Revision, run.Revision) || !reflect.DeepEqual(trusted.Configuration, run.Approved) || trusted.Policy != run.Policy || trusted.Trust != run.Trust {
+		return invalid("trusted_binding", "mismatch", "trusted scope does not match the supplied run")
+	}
+	if !j.input.Repository.Equal(trusted.Repository) || !reflect.DeepEqual(j.input.Revision, trusted.Revision) || j.input.Policy != trusted.Policy || j.input.Trust != trusted.Trust || !configurationInSnapshot(trusted.Configuration, j.input.Configuration) {
+		return invalid("trusted_binding", "mismatch", "job does not match the trusted scope")
 	}
 	if j.input.Policy != run.Policy || j.input.Trust != run.Trust {
 		return invalid("job", "mismatch", "job trust scope does not match the supplied run")
 	}
-	if len(trusted.ApprovedExecutors) > 0 && !containsExecutor(trusted.ApprovedExecutors, j.input.Executor) {
+	if len(trusted.ApprovedExecutors) == 0 || !containsExecutor(trusted.ApprovedExecutors, j.input.Executor) {
 		return invalid("executor", "unapproved", "job executor is not approved")
 	}
-	if len(trusted.ApprovedProfiles) > 0 && (!containsProfile(trusted.ApprovedProfiles, j.input.Resources) || !containsProfile(trusted.ApprovedProfiles, j.input.Timeout) || !containsProfile(trusted.ApprovedProfiles, j.input.Retry)) {
+	if len(trusted.ApprovedProfiles) == 0 || !containsProfile(trusted.ApprovedProfiles, j.input.Resources) || !containsProfile(trusted.ApprovedProfiles, j.input.Timeout) || !containsProfile(trusted.ApprovedProfiles, j.input.Retry) {
 		return invalid("profiles", "unapproved", "job profile is not approved")
 	}
 	for index, gate := range j.input.Gates {
-		if len(trusted.ApprovedGates) > 0 && !containsGate(trusted.ApprovedGates, gate) {
+		if len(trusted.ApprovedGates) == 0 || !containsGate(trusted.ApprovedGates, gate) {
 			return prefixError("gates", prefixError(indexPath(index), invalid("gate", "unapproved", "job gate is not approved")))
 		}
 	}
 	for _, destination := range jobDestinations(j) {
-		if len(trusted.ApprovedDestinations) > 0 && !containsDestination(trusted.ApprovedDestinations, destination) {
+		if len(trusted.ApprovedDestinations) == 0 || !containsDestination(trusted.ApprovedDestinations, destination) {
 			return invalid("destination", "unapproved", "job destination is not approved")
 		}
 	}

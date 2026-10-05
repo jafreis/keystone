@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 )
@@ -251,6 +252,9 @@ func NewJobWorkReference(messageID MessageID, id WorkReferenceID, plan Execution
 	if job.PlanID() != plan.ID() || job.RunID() != plan.RunID() {
 		return WorkReference{}, invalid("job", "scope_mismatch", "job does not belong to plan")
 	}
+	if !planContainsJob(plan, job) {
+		return WorkReference{}, invalid("job", "mismatch", "job is not recorded in the authoritative plan")
+	}
 	if err := messageID.Validate(); err != nil {
 		return WorkReference{}, prefixError("message_id", err)
 	}
@@ -353,6 +357,9 @@ func (w WorkReference) ValidateAgainstJob(plan ExecutionPlan, job JobSpec) error
 	if w.kind != WorkKindJob || w.plan == nil {
 		return invalid("kind", "mismatch", "work reference is not job work")
 	}
+	if !planContainsJob(plan, job) {
+		return invalid("job", "mismatch", "job is not recorded in the authoritative plan")
+	}
 	if w.runID != plan.RunID() || w.jobID != job.ID() || w.jobDigest != job.Digest() || w.class != job.Class() {
 		return invalid("reference", "mismatch", "work reference does not match the loaded job")
 	}
@@ -360,6 +367,15 @@ func (w WorkReference) ValidateAgainstJob(plan ExecutionPlan, job JobSpec) error
 		return invalid("plan", "mismatch", "work reference does not match the loaded plan")
 	}
 	return nil
+}
+
+func planContainsJob(plan ExecutionPlan, candidate JobSpec) bool {
+	for _, recorded := range plan.Jobs() {
+		if recorded.ID() == candidate.ID() && recorded.Digest() == candidate.Digest() && bytes.Equal(recorded.CanonicalBytes(), candidate.CanonicalBytes()) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w WorkReference) ValidateAgainstAnalysis(analysis AnalysisSpec) error {

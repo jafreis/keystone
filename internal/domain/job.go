@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -570,6 +571,9 @@ func (i JobSpecInput) Validate() error {
 	if err := i.Input.ValidateFor(i.Operation); err != nil {
 		return err
 	}
+	if err := validateSelectedInputConfiguration(i.Input, i.Configuration); err != nil {
+		return err
+	}
 	if len(i.Dependencies) > maxListEntries {
 		return invalid("dependencies", "invalid_count", "dependencies exceed the supported count")
 	}
@@ -608,6 +612,46 @@ func (i JobSpecInput) Validate() error {
 	return prefixError("retry", i.Retry.Validate())
 }
 
+func normalizeJobSpecInput(input JobSpecInput) JobSpecInput {
+	if input.Dependencies == nil {
+		input.Dependencies = []JobID{}
+	}
+	if input.Gates == nil {
+		input.Gates = []GateReference{}
+	}
+	return input
+}
+
+func validateSelectedInputConfiguration(input JobInput, selected ConfigurationReference) error {
+	var configuration *ConfigurationReference
+	switch {
+	case input.BazelBuild != nil:
+		configuration = &input.BazelBuild.Configuration
+	case input.BazelTest != nil:
+		configuration = &input.BazelTest.Configuration
+	case input.KubernetesValidation != nil:
+		configuration = &input.KubernetesValidation.Configuration
+	case input.TerragruntPlan != nil:
+		configuration = &input.TerragruntPlan.Configuration
+	case input.PublishOCI != nil:
+		if input.PublishOCI.Artifact.Retained != nil {
+			configuration = &input.PublishOCI.Artifact.Retained.Configuration
+		} else if input.PublishOCI.Artifact.Producer != nil {
+			configuration = &input.PublishOCI.Artifact.Producer.Configuration
+		}
+	case input.Deploy != nil:
+		if input.Deploy.Artifact.Retained != nil {
+			configuration = &input.Deploy.Artifact.Retained.Configuration
+		} else if input.Deploy.Artifact.Producer != nil {
+			configuration = &input.Deploy.Artifact.Producer.Configuration
+		}
+	}
+	if configuration == nil || !configuration.Equal(selected) {
+		return invalid("input.configuration", "mismatch", "typed operation input does not match the selected configuration")
+	}
+	return nil
+}
+
 func validateLabels(path string, values []string) error {
 	if len(values) == 0 || len(values) > maxListEntries {
 		return invalid(path, "invalid_count", "label list must be bounded and non-empty")
@@ -639,6 +683,7 @@ type JobSpec struct {
 }
 
 func NewJobSpec(input JobSpecInput) (JobSpec, error) {
+	input = normalizeJobSpecInput(input)
 	if err := input.Validate(); err != nil {
 		return JobSpec{}, err
 	}
@@ -691,6 +736,9 @@ func (j JobSpec) MarshalJSON() ([]byte, error) {
 }
 
 func (j *JobSpec) UnmarshalJSON(data []byte) error {
+	if err := requireJSONArrays(data, "dependencies", "gates"); err != nil {
+		return err
+	}
 	var wire jobSpecWire
 	if err := decodeStrict(data, &wire); err != nil {
 		return err
@@ -707,6 +755,21 @@ func (j *JobSpec) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*j = parsed
+	return nil
+}
+
+func requireJSONArrays(data []byte, names ...string) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return invalid("", "invalid_json", "normalized JSON does not match the contract")
+	}
+	for _, name := range names {
+		raw, ok := fields[name]
+		trimmed := bytes.TrimSpace(raw)
+		if !ok || len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || trimmed[0] != '[' {
+			return invalid(name, "invalid_value", "field must contain an explicit array")
+		}
+	}
 	return nil
 }
 

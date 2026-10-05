@@ -589,10 +589,15 @@ func (i JobSpecInput) Validate() error {
 	if len(i.Gates) > maxListEntries {
 		return invalid("gates", "invalid_count", "gates exceed the supported count")
 	}
+	gateIDs := make(map[GateID]struct{}, len(i.Gates))
 	for index, gate := range i.Gates {
 		if err := gate.Validate(); err != nil {
 			return prefixError("gates", prefixError(indexPath(index), err))
 		}
+		if _, exists := gateIDs[gate.ID]; exists {
+			return invalid("gates", "duplicate_value", "job contains duplicate gates")
+		}
+		gateIDs[gate.ID] = struct{}{}
 	}
 	if err := i.Resources.Validate(); err != nil {
 		return prefixError("resources", err)

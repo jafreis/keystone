@@ -165,3 +165,36 @@ func TestExecutionPlanSameIdentityConflictsAndFailedDecodePreservesReceiver(t *t
 		t.Fatal("failed plan decode partially replaced receiver")
 	}
 }
+
+func TestExecutionPlanValidateAgainstSeparateTrustedBinding(t *testing.T) {
+	input, _, _ := testPlanInput()
+	plan, err := NewExecutionPlan(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event := testPushEvent(NullCommitCandidate())
+	run := testOriginalRun(event, input.Revision)
+	run.ID = input.Run
+	run.Approved = input.Configuration
+	run.Plan = clonePointer(plan.Reference())
+	if err := run.Validate(); err != nil {
+		t.Fatalf("trusted fixture run: %v", err)
+	}
+	trusted := TrustedPlanBinding{Repository: run.Repository, Revision: run.Revision, Configuration: run.Approved, Policy: run.Policy, Trust: run.Trust}
+	for _, job := range plan.Jobs() {
+		trusted.ApprovedExecutors = append(trusted.ApprovedExecutors, job.Executor())
+		trusted.ApprovedProfiles = append(trusted.ApprovedProfiles, job.input.Resources, job.input.Timeout, job.input.Retry)
+		trusted.ApprovedDestinations = append(trusted.ApprovedDestinations, jobDestinations(job)...)
+	}
+	if err := plan.ValidateAgainst(run, trusted); err != nil {
+		t.Fatalf("trusted plan rejected: %v", err)
+	}
+
+	tampered := trusted
+	tampered.Revision = cloneValue(trusted.Revision)
+	tampered.Revision.Resolved.Base = testCommit("abcdefabcdefabcdefabcdefabcdefabcdefabcd")
+	tampered.Revision.Resolved.BaseEvidence = testObjectEvidence(event.Binding.ProviderRepository, tampered.Revision.Resolved.Base, "tampered-base")
+	if err := plan.ValidateAgainst(run, tampered); err == nil {
+		t.Fatal("same revision ID with changed base passed trusted comparison")
+	}
+}

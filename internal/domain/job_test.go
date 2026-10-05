@@ -65,6 +65,21 @@ func TestJobSpecSupportsPublicOperationMatrixAndStrictRoundTrip(t *testing.T) {
 			if decoded.Digest() != job.Digest() || decoded.OperationKey() != job.OperationKey() {
 				t.Fatal("round trip changed identity")
 			}
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(encoded, &fields); err != nil {
+				t.Fatal(err)
+			}
+			reordered, err := json.Marshal(fields)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var reorderedJob JobSpec
+			if err := json.Unmarshal(append([]byte(" \n"), append(reordered, []byte(" \n")...)...), &reorderedJob); err != nil {
+				t.Fatal(err)
+			}
+			if reorderedJob.Digest() != job.Digest() || reorderedJob.OperationKey() != job.OperationKey() {
+				t.Fatal("JSON ordering or whitespace changed identity")
+			}
 		})
 	}
 }
@@ -86,6 +101,13 @@ func TestJobSpecRejectsOperationInputAndClassPromotion(t *testing.T) {
 	input.Input = JobInput{BazelTest: &BazelTestInput{Labels: []string{"//api:test"}, Configuration: input.Configuration}}
 	if _, err := NewJobSpec(input); err == nil {
 		t.Fatal("publish operation accepted validation input")
+	}
+
+	input = testJobInput(OperationBazelTest)
+	gate := GateReference{ID: "gate-tests", Version: "v1", Digest: strictDigest('7')}
+	input.Gates = []GateReference{gate, gate}
+	if _, err := NewJobSpec(input); err == nil {
+		t.Fatal("duplicate gates were accepted")
 	}
 }
 

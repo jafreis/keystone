@@ -1,11 +1,12 @@
 # Keystone state and identity contracts
 
-- **Status:** Proposed contract for future implementation
+- **Status:** Proposed backend contract with A1.04 domain implementation
 - **Contract family:** `keystone.state`
-- **Document version:** `0.1.1`
+- **Document version:** `0.2.0`
 - **Fingerprint version defined here:** `F1` (`keystone/fingerprint/v1`)
-- **Scope:** Sprint 1, Task A1.01
-- **Implementation status:** Documentation only; no state adapter, queue, HTTP route or
+- **Scope:** Sprint 1, Tasks A1.01 and A1.04
+- **Implementation status:** Pure validated plan, job, analysis and work-reference
+contracts are present in `internal/domain`; no state adapter, queue, HTTP route or
 worker is present in this checkout.
 
 This document is the normative, backend-neutral contract for identities,
@@ -396,6 +397,30 @@ destination-specific `ExternalOperationID` and receipt/reconciliation record.
 An operation key prevents an unintended duplicate identity; it cannot undo an
 external effect that was already issued.
 
+### 5.4 A1.04 domain implementation boundary
+
+The A1.04 implementation in `internal/domain` freezes validated construction
+inputs into private `ExecutionPlan`, `JobSpec` and `AnalysisSpec` snapshots.
+Accessors return copies, and strict JSON decoding validates a temporary value
+before replacing a receiver. The implementation provides the following v1
+rules:
+
+- plan, job, analysis and work-reference schema versions are independent;
+- plan, job, analysis and operation projections use the `sha256:` plus lowercase
+  hexadecimal digest grammar and typed length-delimited canonical fields;
+- operation and execution class are derived from the supported operation matrix;
+- Build, Test, Push and Deploy are public job kinds; analysis is a separate work
+  class;
+- job dependencies, producer outputs, gate producers, stored array order and
+  complete-empty provenance are validated before a snapshot is returned;
+- queue references are bounded to 16 KiB and contain identity/version/digest
+  bindings only.
+
+These constructors do not select targets, resolve revisions, compile plans,
+publish messages, execute commands or authorize credentials. `ValidateAgainst`
+methods compare snapshots with separately supplied run and trusted-binding
+values; payload fields do not grant trust or execution authority.
+
 ## 6. Schema compatibility and version history
 
 These versions have different purposes and must be recorded separately:
@@ -638,6 +663,7 @@ claims completion.
 | `0.1.0` / 2026-10-03 | `ST-001`–`ST-008` | Initial A1.01 contract: delivery namespace, `F1` semantic replay, revision representations, immutable identities, atomic groups, commit-before-ack and unknown-outcome recovery. | Proposed for review. No runtime implementation or adopted storage schema exists. |
 | `0.1.0` / 2026-10-03 | `CHG-001` | Recorded the A2.2 alignment prerequisite: raw-body digest is separate request evidence; normalized semantic content decides same-delivery replay. | No external milestone draft was edited. A2 implementation must resolve this before consuming the contract. |
 | `0.1.1` / 2026-10-03 | `CHG-002` | Corrected the admission-evidence retention rule to prohibit durable raw requests, signatures, authorization values and secrets. | Review correction aligned with A2's bounded authentication lifetime and credential-free durable records. `F1` and delivery identity are unchanged. |
+| `0.2.0` / 2026-10-05 | `A1.04` | Added versioned immutable plan, job, analysis and bounded work-reference domain contracts with typed operation/class validation, canonical projections, dependency/provenance checks and strict codecs. | Domain implementation is local and backend-neutral. Existing F1, event, revision and run rules remain unchanged; consumers must support the recorded v1 contract versions. |
 
 An approved change must add a new history row and, when behavior changes, a
 new contract or fingerprint/schema version. Editing prose without preserving
@@ -645,7 +671,8 @@ the prior decision is not a rollback mechanism.
 
 ## 14. Scope and evidence boundary
 
-This task creates one documentation contract only. It does not implement:
+The A1.01 state contract remains backend-neutral. The A1.04 implementation adds
+pure domain records and does not implement:
 
 - Go packages, database tables, migrations or storage adapters;
 - webhook routes, provider authentication or policy evaluation;

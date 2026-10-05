@@ -20,13 +20,11 @@ the source Harness:
 - `agents/code-review.agent.md`
 - `agents/verify.agent.md`
 
-The source commit and the inspected source checkout do not by themselves
-establish a license grant for those retained portions. Their bodies remain
-synchronized and their host-only color metadata remains intact, but the files
-are an explicit rights-confirmation exception in
-[the licensing record](../licensing.md) until the relevant maintainer or rights
-holder confirms sufficient rights. No separate ClueMesh license change is
-required by this Keystone task.
+The Keystone maintainer confirmed on 2026-10-05 that the maintainer holds
+sufficient rights to redistribute these retained portions under MPL-2.0. Their
+bodies remain synchronized and their host-only color metadata remains intact.
+ClueMesh's future licensing decision is separate and no ClueMesh license
+change is required by this Keystone task.
 
 ## Retained and adapted material
 

@@ -19,8 +19,8 @@ that Keystone does not own or use under an applicable grant.
 ## Scope and current inventory
 
 The repository default applies to project-owned source, tests, hooks,
-configuration, documentation and Harness guidance after sufficient rights are
-established. Eligible files carry an `SPDX-License-Identifier: MPL-2.0`
+configuration, documentation and Harness guidance for which Keystone has
+sufficient rights. Eligible files carry an `SPDX-License-Identifier: MPL-2.0`
 notice in a syntax valid for that file type. `LICENSE` is the unmodified
 license document, apart from a final newline for repository hygiene.
 
@@ -30,14 +30,14 @@ license document, apart from a final newline for repository hygiene.
 | `hooks/` Python scripts and tests | The scripts use Python standard-library modules only. | Project-owned repository tooling; covered by the repository default. |
 | `.pre-commit-config.yaml`, `.commitlintrc.yaml`, `go.mod` | These files contain repository configuration and module identity. Pinned hook and commitlint references identify tools downloaded for local checks; they do not relicense those tools. | Repository configuration is covered; downloaded tools retain their own terms and are not bundled by this checkout. |
 | Repository Markdown and Harness guidance | The files describe Keystone development and product scope. Their planned product references are documentation, not runtime components. | Project-owned documentation is covered unless listed as an exception. |
-| Six retained/adapted role files | `.agents/agent-templates/{code-review,verify}.md`, `.agents/agents/{code-review,verify}.md` and `agents/{code-review,verify}.agent.md` were retained or adapted from a ClueMesh Harness. The provenance record identifies source commit `c20eb519b493103ef44766daa1d933263402f590`; the inspected source checkout did not provide a license-like file for this material. | Rights confirmation from the relevant maintainer or rights holder is still required. These files remain an explicit exception and are not blanket-marked as MPL until that disposition is recorded. Their shared bodies and host-specific metadata remain synchronized. |
+| Six retained/adapted role files | `.agents/agent-templates/{code-review,verify}.md`, `.agents/agents/{code-review,verify}.md` and `agents/{code-review,verify}.agent.md` were retained or adapted from a ClueMesh Harness. The provenance record identifies source commit `c20eb519b493103ef44766daa1d933263402f590`; the inspected source checkout and public license endpoint provide no license-like file. | The Keystone maintainer confirmed on 2026-10-05 that Keystone has sufficient rights to redistribute these files under MPL-2.0. They are covered by the repository default and carry the same marker while preserving synchronized bodies and host-specific metadata. ClueMesh's future license is a separate decision. |
 | Owning-worktree product drafts | `docs/spec.md`, `docs/plan.md` and `docs/milestones/` are untracked in the owning worktree and absent here. | Outside this checkout and outside this license change. Do not copy or modify them as part of Harness work. |
 | Future dependencies and release artifacts | No external Go module, vendored code, Bazel target, image or product binary exists here. | Review exact versions, licenses, notices, modifications, linkage or bundling and source delivery when such artifacts are introduced. |
 
 Git authorship, a repository path or the absence of an upstream license does not
-itself prove ownership or permission. The retained role files are therefore a
-bounded rights question rather than a claim of infringement. A rights-holder
-confirmation can resolve the exception without modifying the source Harness.
+itself prove ownership or permission. The maintainer confirmation recorded above
+is the rights basis for the retained role files; it does not license ClueMesh or
+any other source repository.
 
 ## MPL obligations
 
@@ -113,8 +113,7 @@ pre-commit run commitlint --hook-stage commit-msg \
 ```
 
 These checks establish repository consistency and current source behavior. They
-cannot prove ownership, third-party permission, editor discovery, host schema
-support, model behavior or compliance of nonexistent release artifacts. The
-current source-tree conclusion is complete for project-owned files after the
-listed notices are applied, and remains conditional for the six retained role
-files until their rights disposition is confirmed.
+cannot prove editor discovery, host schema support, model behavior or compliance
+of nonexistent release artifacts. With the maintainer rights confirmation and
+the listed notices, the current source-tree MPL review is complete; future
+executables and OCI images remain subject to the release gate above.

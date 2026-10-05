@@ -137,6 +137,14 @@ func (p ExecutionPlanInput) Validate() error {
 	if err := p.Configuration.Validate(); err != nil {
 		return prefixError("configuration", err)
 	}
+	seenConfigurations := make(map[string]struct{}, len(p.Configuration.Matrix))
+	for index, entry := range p.Configuration.Matrix {
+		key := string(entry.ID) + "\x00" + entry.Version
+		if _, exists := seenConfigurations[key]; exists {
+			return prefixError("configuration", prefixError("matrix", prefixError(indexPath(index), invalid("id", "duplicate_value", "configuration matrix contains a duplicate reference"))))
+		}
+		seenConfigurations[key] = struct{}{}
+	}
 	if err := p.Policy.Validate(); err != nil {
 		return prefixError("policy", err)
 	}
@@ -394,6 +402,7 @@ func validatePlanIdentity(input ExecutionPlanInput, jobs []JobSpec) error {
 }
 
 func (p ExecutionPlan) ID() PlanID                { return p.input.ID }
+func (p ExecutionPlan) PlanID() PlanID            { return p.input.ID }
 func (p ExecutionPlan) RunID() RunID              { return p.input.Run }
 func (p ExecutionPlan) Digest() ContentDigest     { return p.digest }
 func (p ExecutionPlan) Revision() RevisionContext { return cloneValue(p.input.Revision) }
@@ -409,6 +418,8 @@ func (p ExecutionPlan) Jobs() []JobSpec {
 	return result
 }
 func (p ExecutionPlan) RequiredGates() []GateReference { return cloneValue(p.input.RequiredGates) }
+func (p ExecutionPlan) JobSpecs() []JobSpec            { return p.Jobs() }
+func (p ExecutionPlan) PlanReference() PlanReference   { return p.Reference() }
 func (p ExecutionPlan) CanonicalBytes() []byte         { return append([]byte(nil), planProjection(p)...) }
 
 func (p ExecutionPlan) Reference() PlanReference {

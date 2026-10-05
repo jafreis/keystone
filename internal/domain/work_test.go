@@ -57,6 +57,12 @@ func TestAnalysisSpecRejectsFailedResolutionAndInvalidClass(t *testing.T) {
 	if _, err := NewAnalysisSpec(input); err == nil {
 		t.Fatal("analysis without explicit evidence was accepted")
 	}
+	input = testAnalysisInput()
+	input.Revision = testRevision(RevisionStatePending)
+	input.Kind = AnalysisKindRevisionResolution
+	if _, err := NewAnalysisSpec(input); err != nil {
+		t.Fatalf("pending revision resolution analysis rejected: %v", err)
+	}
 }
 
 func TestWorkReferencesAreBoundedAndCompareLoadedContracts(t *testing.T) {

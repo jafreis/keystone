@@ -647,18 +647,20 @@ func NewJobSpec(input JobSpecInput) (JobSpec, error) {
 	return JobSpec{input: cloneValue(input), digest: sha256ContractDigest(projection), operationKey: key}, nil
 }
 
-func (j JobSpec) Input() JobSpecInput         { return cloneValue(j.input) }
-func (j JobSpec) ID() JobID                   { return j.input.ID }
-func (j JobSpec) PlanID() PlanID              { return j.input.Plan }
-func (j JobSpec) RunID() RunID                { return j.input.Run }
-func (j JobSpec) Kind() JobKind               { return j.input.Kind }
-func (j JobSpec) Operation() JobOperation     { return j.input.Operation }
-func (j JobSpec) Class() ExecutionClass       { return j.input.Class }
-func (j JobSpec) Executor() ExecutorReference { return j.input.Executor }
-func (j JobSpec) Dependencies() []JobID       { return append([]JobID(nil), j.input.Dependencies...) }
-func (j JobSpec) Gates() []GateReference      { return cloneValue(j.input.Gates) }
-func (j JobSpec) Digest() ContentDigest       { return j.digest }
-func (j JobSpec) OperationKey() OperationKey  { return j.operationKey }
+func (j JobSpec) Input() JobSpecInput               { return cloneValue(j.input) }
+func (j JobSpec) ID() JobID                         { return j.input.ID }
+func (j JobSpec) JobID() JobID                      { return j.input.ID }
+func (j JobSpec) PlanID() PlanID                    { return j.input.Plan }
+func (j JobSpec) RunID() RunID                      { return j.input.Run }
+func (j JobSpec) Kind() JobKind                     { return j.input.Kind }
+func (j JobSpec) Operation() JobOperation           { return j.input.Operation }
+func (j JobSpec) Class() ExecutionClass             { return j.input.Class }
+func (j JobSpec) Executor() ExecutorReference       { return j.input.Executor }
+func (j JobSpec) Dependencies() []JobID             { return append([]JobID(nil), j.input.Dependencies...) }
+func (j JobSpec) Gates() []GateReference            { return cloneValue(j.input.Gates) }
+func (j JobSpec) Digest() ContentDigest             { return j.digest }
+func (j JobSpec) OperationKey() OperationKey        { return j.operationKey }
+func (j JobSpec) LogicalOperationKey() OperationKey { return j.operationKey }
 func (j JobSpec) CanonicalBytes() []byte {
 	return append([]byte(nil), jobProjection(j.input, j.operationKey)...)
 }
@@ -672,6 +674,13 @@ func (j JobSpec) Validate() error {
 		return invalid("operation_key", "digest_mismatch", "operation key does not match canonical content")
 	}
 	return verifyContractDigest("digest", j.digest, jobProjection(j.input, key))
+}
+
+func (j JobSpec) ValidateAgainst(run Run, trusted TrustedPlanBinding) error {
+	if err := j.Validate(); err != nil {
+		return err
+	}
+	return j.validateAgainst(run, trusted)
 }
 
 func (j JobSpec) MarshalJSON() ([]byte, error) {

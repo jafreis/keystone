@@ -128,6 +128,7 @@ func NewAnalysisSpec(input AnalysisSpecInput) (AnalysisSpec, error) {
 
 func (a AnalysisSpec) Input() AnalysisSpecInput { return cloneValue(a.input) }
 func (a AnalysisSpec) ID() AnalysisID           { return a.input.ID }
+func (a AnalysisSpec) AnalysisID() AnalysisID   { return a.input.ID }
 func (a AnalysisSpec) RunID() RunID             { return a.input.Run }
 func (a AnalysisSpec) Class() ExecutionClass    { return a.input.Class }
 func (a AnalysisSpec) Digest() ContentDigest    { return a.digest }
@@ -327,11 +328,13 @@ func (w WorkReference) Validate() error {
 	return nil
 }
 
-func (w WorkReference) MessageID() MessageID  { return w.messageID }
-func (w WorkReference) ID() WorkReferenceID   { return w.id }
-func (w WorkReference) RunID() RunID          { return w.runID }
-func (w WorkReference) Kind() WorkKind        { return w.kind }
-func (w WorkReference) Class() ExecutionClass { return w.class }
+func (w WorkReference) MessageID() MessageID             { return w.messageID }
+func (w WorkReference) ID() WorkReferenceID              { return w.id }
+func (w WorkReference) WorkReferenceID() WorkReferenceID { return w.id }
+func (w WorkReference) RunID() RunID                     { return w.runID }
+func (w WorkReference) Kind() WorkKind                   { return w.kind }
+func (w WorkReference) Class() ExecutionClass            { return w.class }
+func (w WorkReference) TargetVersion() string            { return w.targetVersion }
 func (w WorkReference) Plan() *PlanReference {
 	if w.plan == nil {
 		return nil

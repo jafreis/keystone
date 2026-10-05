@@ -129,6 +129,11 @@ func TestExecutionPlanRequiresExplicitCompleteEmptyProvenance(t *testing.T) {
 	if _, err := NewExecutionPlan(input); err != nil {
 		t.Fatalf("graph-only provenance should be valid: %v", err)
 	}
+	input, _, _ = testPlanInput()
+	input.Configuration.Matrix = append(input.Configuration.Matrix, input.Configuration.Matrix[0])
+	if _, err := NewExecutionPlan(input); err == nil {
+		t.Fatal("duplicate configuration matrix reference was accepted")
+	}
 }
 
 func TestExecutionPlanSameIdentityConflictsAndFailedDecodePreservesReceiver(t *testing.T) {

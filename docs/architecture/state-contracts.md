@@ -674,7 +674,8 @@ the prior decision is not a rollback mechanism.
 The A1.01 state contract remains backend-neutral. The A1.04 implementation adds
 pure domain records and does not implement:
 
-- Go packages, database tables, migrations or storage adapters;
+- database tables, migrations or storage adapters;
+- control-plane adapters beyond the pure `internal/domain` package;
 - webhook routes, provider authentication or policy evaluation;
 - queues, outbox loops, schedulers, workers, Kubernetes objects or leases;
 - Git/Bazel revision resolution, target detection or plan compilation;

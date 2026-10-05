@@ -18,8 +18,16 @@ const (
 	RepositoryEventSchemaVersion uint16 = 1
 	RevisionContextSchemaVersion uint16 = 1
 	RunSchemaVersion             uint16 = 1
+	PlanSchemaVersion            uint16 = 1
+	JobSchemaVersion             uint16 = 1
+	AnalysisSchemaVersion        uint16 = 1
+	WorkReferenceSchemaVersion   uint16 = 1
 
-	FingerprintVersion = "keystone/fingerprint/v1"
+	FingerprintVersion    = "keystone/fingerprint/v1"
+	PlanDigestVersion     = "keystone/plan/v1"
+	JobDigestVersion      = "keystone/job/v1"
+	AnalysisDigestVersion = "keystone/analysis/v1"
+	OperationKeyVersion   = "keystone/operation/v1"
 
 	maxOpaqueIDLength = 256
 	maxVersionLength  = 64
@@ -151,7 +159,16 @@ type StrategyID string
 type EvidenceID string
 type ResolutionAttemptID string
 type PlanID string
+type JobID string
+type AnalysisID string
+type WorkReferenceID string
+type MessageID string
+type OutputID string
+type DestinationID string
+type GateID string
+type ProfileID string
 type ContentDigest string
+type OperationKey string
 
 func (v ProviderKind) Validate() error  { return validateID("provider_kind", string(v)) }
 func (v IntegrationID) Validate() error { return validateID("integration_id", string(v)) }
@@ -174,7 +191,36 @@ func (v StrategyID) Validate() error          { return validateID("strategy_id",
 func (v EvidenceID) Validate() error          { return validateID("evidence_id", string(v)) }
 func (v ResolutionAttemptID) Validate() error { return validateID("resolution_attempt_id", string(v)) }
 func (v PlanID) Validate() error              { return validateID("plan_id", string(v)) }
+func (v JobID) Validate() error               { return validateID("job_id", string(v)) }
+func (v AnalysisID) Validate() error          { return validateID("analysis_id", string(v)) }
+func (v WorkReferenceID) Validate() error     { return validateID("work_reference_id", string(v)) }
+func (v MessageID) Validate() error           { return validateID("message_id", string(v)) }
+func (v OutputID) Validate() error            { return validateID("output_id", string(v)) }
+func (v DestinationID) Validate() error       { return validateID("destination_id", string(v)) }
+func (v GateID) Validate() error              { return validateID("gate_id", string(v)) }
+func (v ProfileID) Validate() error           { return validateID("profile_id", string(v)) }
 func (v ContentDigest) Validate() error       { return validateOptionalDigest("digest", string(v)) }
+func (v OperationKey) Validate() error        { return validateContractDigest("operation_key", string(v)) }
+
+func validateContractDigest(path, value string) error {
+	if len(value) != len("sha256:")+64 || !strings.HasPrefix(value, "sha256:") {
+		return invalid(path, "invalid_digest", "contract digest must use the sha256 format")
+	}
+	for index := len("sha256:"); index < len(value); index++ {
+		char := value[index]
+		if !(char >= '0' && char <= '9' || char >= 'a' && char <= 'f') {
+			return invalid(path, "invalid_digest", "contract digest must use lowercase hexadecimal")
+		}
+	}
+	return nil
+}
+
+func validateContractVersion(path, value, expected string) error {
+	if value != expected {
+		return invalid(path, "unsupported_value", "contract rule version is unsupported")
+	}
+	return nil
+}
 
 type ProvenanceSource string
 

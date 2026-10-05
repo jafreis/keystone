@@ -508,6 +508,9 @@ func (p ExecutionPlan) ValidateAgainst(run Run, trusted TrustedPlanBinding) erro
 	if !p.input.Repository.Equal(trusted.Repository) || !reflect.DeepEqual(p.input.Revision, trusted.Revision) || !reflect.DeepEqual(p.input.Configuration, trusted.Configuration) || p.input.Policy != trusted.Policy || p.input.Trust != trusted.Trust {
 		return invalid("trusted_binding", "mismatch", "plan does not match the trusted binding")
 	}
+	if run.Plan != nil && !reflect.DeepEqual(*run.Plan, p.Reference()) {
+		return invalid("run.plan", "mismatch", "plan does not match the run attachment")
+	}
 	for index, job := range p.jobs {
 		if err := job.validateAgainst(run, trusted); err != nil {
 			return prefixError("jobs", prefixError(indexPath(index), err))

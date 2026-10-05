@@ -241,7 +241,7 @@ func NewExecutionPlan(input ExecutionPlanInput) (ExecutionPlan, error) {
 			return ExecutionPlan{}, err
 		}
 	}
-	if err := validatePlanGateBindings(input.RequiredGates, byID, jbos); err != nil {
+	if err := validatePlanGateBindings(input.RequiredGates, byID); err != nil {
 		return ExecutionPlan{}, err
 	}
 	result := ExecutionPlan{input: cloneValue(input), jobs: cloneValue(jbos)}
@@ -348,7 +348,7 @@ func producerDeclaresOutput(job JobSpec, output OutputID, kind OutputKind) bool 
 	return false
 }
 
-func validatePlanGateBindings(gates []GateReference, byID map[JobID]JobSpec, jobs []JobSpec) error {
+func validatePlanGateBindings(gates []GateReference, byID map[JobID]JobSpec) error {
 	seen := make(map[GateID]struct{}, len(gates))
 	for index, gate := range gates {
 		if _, exists := seen[gate.ID]; exists {
@@ -361,7 +361,6 @@ func validatePlanGateBindings(gates []GateReference, byID map[JobID]JobSpec, job
 			}
 		}
 	}
-	_ = jobs
 	return nil
 }
 

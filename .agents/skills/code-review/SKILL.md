@@ -2,6 +2,7 @@
 name: code-review
 description: Review a local Keystone CI or Harness diff for correctness, security and maintainability without editing or publishing.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Code review
 

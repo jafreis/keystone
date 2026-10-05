@@ -2,6 +2,7 @@
 name: keystone-validation
 description: Validate Keystone's webhook, runner, change-selection, cache, BEP and quality-gate contracts for an affected implementation or review.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # CI contract validation
 

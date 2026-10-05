@@ -2,6 +2,7 @@
 name: feature
 description: Implement a new Keystone CI capability or substantial behavior change from requirements through focused verification.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Feature development
 

@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # keystone
 
 Keystone is the selected product name for delta-aware CI orchestration for
@@ -11,6 +13,15 @@ Contributor workflows live in the repository AI Harness:
 
 - [Harness usage and local checks](docs/ai-harness/README.md)
 - [Harness provenance](docs/ai-harness/provenance.md)
+- [Contribution and notice policy](CONTRIBUTING.md)
+
+## License
+
+Keystone is distributed under the [Mozilla Public License 2.0](LICENSE)
+(`MPL-2.0`). The repository default covers project-owned source, tests,
+configuration, documentation and Harness material for which the project has
+sufficient rights. File-level notices identify covered source; exceptions and
+the release obligations are recorded in [docs/licensing.md](docs/licensing.md).
 
 ## Local checks
 

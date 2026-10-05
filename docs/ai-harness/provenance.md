@@ -1,9 +1,32 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Harness provenance
 
 This Harness was adapted from the ClueMesh development Harness inspected at
 commit c20eb519b493103ef44766daa1d933263402f590. The source was used as a
 structural reference for repository routing, review contracts, thin delegated
 roles, manually synchronized host adapters and usage/provenance documentation.
+
+## License disposition
+
+Keystone's repository default is MPL-2.0. The two role templates and their
+Augment and GitHub Copilot adapters listed below were retained or adapted from
+the source Harness:
+
+- `.agents/agent-templates/code-review.md`
+- `.agents/agent-templates/verify.md`
+- `.agents/agents/code-review.md`
+- `.agents/agents/verify.md`
+- `agents/code-review.agent.md`
+- `agents/verify.agent.md`
+
+The source commit and the inspected source checkout do not by themselves
+establish a license grant for those retained portions. Their bodies remain
+synchronized and their host-only color metadata remains intact, but the files
+are an explicit rights-confirmation exception in
+[the licensing record](../licensing.md) until the relevant maintainer or rights
+holder confirms sufficient rights. No separate ClueMesh license change is
+required by this Keystone task.
 
 ## Retained and adapted material
 

@@ -2,6 +2,7 @@
 name: fix
 description: Reproduce and repair a Keystone CI defect with a focused regression check and explicit boundary evidence.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Fix workflow
 

@@ -2,6 +2,7 @@
 name: session-retro
 description: Produce a Keystone development-session retrospective and propose durable Harness changes only when the user explicitly requests a retro.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Session retrospective
 

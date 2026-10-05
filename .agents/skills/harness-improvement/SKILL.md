@@ -2,6 +2,7 @@
 name: harness-improvement
 description: Improve Keystone repository guidance, skills, templates or host adapters while preserving scope and user choices.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Harness maintenance
 

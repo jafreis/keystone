@@ -2,6 +2,7 @@
 name: task-spec
 description: Turn a scoped Keystone CI capability or approved design into ordered implementation tasks with observable acceptance criteria.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Task specification
 

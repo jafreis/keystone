@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Tests for the commit-msg guard using disposable Git repositories."""
 
 from pathlib import Path

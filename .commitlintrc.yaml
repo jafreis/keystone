@@ -1,4 +1,7 @@
+# SPDX-License-Identifier: MPL-2.0
+
 extends:
+
   - "@commitlint/config-conventional"
 
 # Keep commitlint's built-in ignores for generated merge, revert, fixup and

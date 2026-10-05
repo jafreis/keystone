@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Keystone CI validation scenarios
 
 Use only sections matching the changed boundary. These are test and design

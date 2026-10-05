@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # AI Harness
 
 The Harness supports development of Keystone, the selected product name for

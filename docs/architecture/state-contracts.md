@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Keystone state and identity contracts
 
 - **Status:** Proposed contract for future implementation

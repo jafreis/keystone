@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Keystone delivery plan
 
 **Status:** Proposed delivery plan. All product work items are planned; this document does not claim an implemented CI platform.

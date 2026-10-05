@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+
 # Review guidelines
 
 Review the requested application or Harness change against the actual

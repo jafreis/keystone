@@ -2,6 +2,7 @@
 name: verify
 description: Verify a requested Keystone application or Harness change and report exact evidence, unavailable checks and remaining risk.
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 # Verification
 

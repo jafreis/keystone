@@ -3,6 +3,7 @@ name: "code-review"
 description: "Review a local Keystone CI or Harness change and report evidence-backed findings without editing or publishing."
 color: "blue"
 ---
+<!-- SPDX-License-Identifier: MPL-2.0 -->
 
 Read .agents/skills/code-review/SKILL.md and .agents/REVIEW_GUIDELINES.md.
 Determine the requested diff scope. For affected product contracts, consult

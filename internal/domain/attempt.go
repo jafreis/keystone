@@ -108,20 +108,22 @@ func (i AttemptIdentity) Equal(other AttemptIdentity) bool {
 // allowed to execute. It is constructed from those contracts rather than from
 // queue or worker fields.
 type WorkScope struct {
-	Work          WorkKind               `json:"work"`
-	Run           RunID                  `json:"run_id"`
-	JobID         JobID                  `json:"job_id,omitempty"`
-	AnalysisID    AnalysisID             `json:"analysis_id,omitempty"`
-	Class         ExecutionClass         `json:"class"`
-	Repository    RepositoryBinding      `json:"repository"`
-	Revision      RevisionContext        `json:"revision"`
-	Configuration ConfigurationReference `json:"configuration"`
-	Policy        PolicyReference        `json:"policy"`
-	Trust         TrustReference         `json:"trust"`
-	TargetVersion string                 `json:"target_version"`
-	Plan          *PlanReference         `json:"plan,omitempty"`
-	TargetDigest  ContentDigest          `json:"target_digest"`
-	OperationKey  OperationKey           `json:"operation_key,omitempty"`
+	Work          WorkKind                 `json:"work"`
+	Run           RunID                    `json:"run_id"`
+	JobID         JobID                    `json:"job_id,omitempty"`
+	AnalysisID    AnalysisID               `json:"analysis_id,omitempty"`
+	Class         ExecutionClass           `json:"class"`
+	Repository    RepositoryBinding        `json:"repository"`
+	Revision      RevisionContext          `json:"revision"`
+	Configuration ConfigurationReference   `json:"configuration"`
+	Policy        PolicyReference          `json:"policy"`
+	Trust         TrustReference           `json:"trust"`
+	Resource      ResourceProfileReference `json:"resource"`
+	TargetVersion string                   `json:"target_version"`
+	Plan          *PlanReference           `json:"plan,omitempty"`
+	TargetDigest  ContentDigest            `json:"target_digest"`
+	OperationKey  OperationKey             `json:"operation_key,omitempty"`
+	Outputs       []OutputDeclaration      `json:"outputs,omitempty"`
 }
 
 func NewJobAttemptScope(plan ExecutionPlan, job JobSpec) (WorkScope, error) {
@@ -145,10 +147,12 @@ func NewJobAttemptScope(plan ExecutionPlan, job JobSpec) (WorkScope, error) {
 		Configuration: input.Configuration,
 		Policy:        input.Policy,
 		Trust:         input.Trust,
+		Resource:      input.Resources,
 		TargetVersion: "v1",
 		Plan:          clonePointer(plan.Reference()),
 		TargetDigest:  job.Digest(),
 		OperationKey:  job.OperationKey(),
+		Outputs:       jobOutputs(input),
 	}
 	if err := scope.Validate(); err != nil {
 		return WorkScope{}, err
@@ -171,6 +175,7 @@ func NewAnalysisAttemptScope(analysis AnalysisSpec) (WorkScope, error) {
 		Configuration: input.Configuration,
 		Policy:        input.Policy,
 		Trust:         input.Trust,
+		Resource:      input.Resources,
 		TargetVersion: "v1",
 		TargetDigest:  analysis.Digest(),
 	}
@@ -211,6 +216,9 @@ func (s WorkScope) Validate() error {
 	if err := s.Trust.Validate(); err != nil {
 		return prefixError("trust", err)
 	}
+	if err := s.Resource.Validate(); err != nil {
+		return prefixError("resource", err)
+	}
 	if !referencesAgree(string(s.Revision.Policy.ID), s.Revision.Policy.Version, s.Revision.Policy.Digest, string(s.Policy.ID), s.Policy.Version, s.Policy.Digest) {
 		return invalid("policy", "mismatch", "work scope policy differs from revision")
 	}
@@ -219,6 +227,19 @@ func (s WorkScope) Validate() error {
 	}
 	if err := validateContractDigest("target_digest", string(s.TargetDigest)); err != nil {
 		return err
+	}
+	if len(s.Outputs) > maxListEntries {
+		return invalid("outputs", "invalid_count", "work scope outputs exceed the supported count")
+	}
+	seenOutputs := make(map[OutputID]struct{}, len(s.Outputs))
+	for index, output := range s.Outputs {
+		if err := output.Validate(); err != nil {
+			return prefixError("outputs", prefixError(indexPath(index), err))
+		}
+		if _, exists := seenOutputs[output.ID]; exists {
+			return invalid("outputs", "duplicate_value", "work scope contains duplicate outputs")
+		}
+		seenOutputs[output.ID] = struct{}{}
 	}
 	jobPresent := s.JobID != ""
 	analysisPresent := s.AnalysisID != ""
@@ -261,7 +282,17 @@ func (s WorkScope) Validate() error {
 	if s.Plan != nil || s.OperationKey != "" {
 		return invalid("analysis", "inconsistent_variant", "analysis scope cannot contain job-only fields")
 	}
+	if len(s.Outputs) != 0 {
+		return invalid("outputs", "inconsistent_variant", "analysis scope cannot contain job outputs")
+	}
 	return nil
+}
+
+func jobOutputs(input JobSpecInput) []OutputDeclaration {
+	if input.Input.BazelBuild == nil {
+		return nil
+	}
+	return cloneValue(input.Input.BazelBuild.Outputs)
 }
 
 type AttemptInput struct {
@@ -432,6 +463,7 @@ func DecodeAttempt(data []byte) (Attempt, error) {
 
 type AttemptOwnershipBinding struct {
 	Identity            AttemptIdentity
+	Attempt             *Attempt
 	Scope               *WorkScope
 	Worker              WorkerID
 	Class               ExecutionClass
@@ -619,7 +651,7 @@ func (r CapacityReservation) ValidateAgainstAttempt(attempt Attempt) error {
 	if r.input.State != CapacityReservationActive {
 		return nil
 	}
-	if r.input.Attempt == nil || r.input.Worker == nil || !r.input.Attempt.Equal(attempt.Identity()) || *r.input.Worker != attempt.Worker() || r.input.ID != attempt.Reservation() || r.input.Class != attempt.Class() || !r.input.Repository.Equal(attempt.Scope().Repository) {
+	if r.input.Attempt == nil || r.input.Worker == nil || !r.input.Attempt.Equal(attempt.Identity()) || *r.input.Worker != attempt.Worker() || r.input.ID != attempt.Reservation() || r.input.Class != attempt.Class() || !r.input.Repository.Equal(attempt.Scope().Repository) || r.input.Resource != attempt.Scope().Resource {
 		return invalid("attempt", "mismatch", "active reservation does not match attempt ownership")
 	}
 	return nil

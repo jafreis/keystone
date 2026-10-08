@@ -10,13 +10,14 @@ import (
 )
 
 const (
-	AttemptResultSchemaVersion uint16 = 1
-	AttemptResultDigestVersion        = "keystone/attempt-result/v1"
-	MaxAttemptResultBytes             = 256 * 1024
-	MaxDiagnosticEntries              = 16
-	MaxDiagnosticTextBytes            = 4 * 1024
-	MaxDiagnosticTotalBytes           = 16 * 1024
-	maxAttemptResultBytes             = MaxAttemptResultBytes
+	AttemptResultSchemaVersion                 uint16 = 1
+	AttemptResultDigestVersion                        = "keystone/attempt-result/v1"
+	MaxAttemptResultBytes                             = 256 * 1024
+	MaxDiagnosticEntries                              = 16
+	MaxDiagnosticTextBytes                            = 4 * 1024
+	MaxDiagnosticTotalBytes                           = 16 * 1024
+	ApprovedDiagnosticRedactionContractVersion        = "redaction-v1"
+	maxAttemptResultBytes                             = MaxAttemptResultBytes
 )
 
 type AttemptOutcome string
@@ -174,6 +175,9 @@ func (d Diagnostics) Validate() error {
 	}
 	if err := validateVersion("contract_version", d.ContractVersion); err != nil {
 		return err
+	}
+	if d.ContractVersion != ApprovedDiagnosticRedactionContractVersion {
+		return invalid("contract_version", "unsupported_value", "diagnostic redaction contract is unsupported")
 	}
 	if !d.Redacted {
 		return invalid("redacted", "required", "diagnostics require an approved redaction contract")
@@ -339,6 +343,9 @@ func validateExecutionShape(i AttemptResultInput) error {
 		if *i.ExitCode == 0 && i.Outcome == AttemptOutcomeFailed && i.Failure == FailureClassNone {
 			return invalid("failure", "missing", "failed result requires a failure classification")
 		}
+		if *i.ExitCode == 0 && i.Outcome == AttemptOutcomeFailed && i.Failure == FailureClassCommand {
+			return invalid("failure", "inconsistent_value", "zero exit cannot be classified as a command failure")
+		}
 	} else {
 		if i.ExitCode != nil {
 			return invalid("exit_code", "inconsistent_value", "only an exited process may contain an exit code")
@@ -365,7 +372,15 @@ func NewAttemptResult(input AttemptResultInput) (AttemptResult, error) {
 	if err := input.Validate(); err != nil {
 		return AttemptResult{}, err
 	}
-	return AttemptResult{input: cloneValue(input), digest: sha256ContractDigest(attemptResultProjection(input))}, nil
+	digest := sha256ContractDigest(attemptResultProjection(input))
+	data, err := json.Marshal(resultWire(input, digest))
+	if err != nil {
+		return AttemptResult{}, err
+	}
+	if len(data) > MaxAttemptResultBytes {
+		return AttemptResult{}, invalid("result", "too_large", "attempt result exceeds the supported size")
+	}
+	return AttemptResult{input: cloneValue(input), digest: digest}, nil
 }
 
 func (r AttemptResult) Input() AttemptResultInput { return cloneValue(r.input) }
@@ -395,31 +410,10 @@ func (r AttemptResult) ValidateAgainstAttempt(attempt Attempt) error {
 }
 
 func (r AttemptResult) ValidateActive(binding AttemptOwnershipBinding) error {
-	if err := r.Validate(); err != nil {
-		return err
+	if binding.Attempt == nil {
+		return invalid("ownership", "inconclusive", "active result validation requires the loaded attempt")
 	}
-	if err := binding.Identity.Validate(); err != nil {
-		return prefixError("binding.identity", err)
-	}
-	if err := binding.Worker.Validate(); err != nil {
-		return prefixError("binding.worker", err)
-	}
-	if err := binding.Class.Validate(); err != nil {
-		return prefixError("binding.class", err)
-	}
-	if err := binding.Fence.Validate(); err != nil {
-		return prefixError("binding.fence", err)
-	}
-	if err := binding.Reservation.Validate(); err != nil {
-		return prefixError("binding.reservation", err)
-	}
-	if err := validateInstant("binding.now", binding.Now); err != nil {
-		return err
-	}
-	if !r.input.Attempt.Equal(binding.Identity) || r.input.Worker != binding.Worker || r.input.Class != binding.Class || r.input.Fence != binding.Fence || r.input.Reservation != binding.Reservation {
-		return invalid("ownership", "mismatch", "result active precondition does not match current ownership")
-	}
-	return nil
+	return r.ValidateForFinalization(*binding.Attempt, binding)
 }
 
 func (r AttemptResult) ValidateForFinalization(attempt Attempt, binding AttemptOwnershipBinding) error {

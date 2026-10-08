@@ -119,6 +119,16 @@ func (e ProducedArtifactEvidence) Validate() error {
 		if e.Output.ID != OutputID(e.Artifact.ID) || e.Output.Kind != e.Artifact.Kind {
 			return invalid("output", "mismatch", "artifact output declaration does not match artifact")
 		}
+		declared := false
+		for _, output := range e.Scope.Outputs {
+			if output == *e.Output {
+				declared = true
+				break
+			}
+		}
+		if !declared {
+			return invalid("output", "mismatch", "artifact output is not declared by the producer scope")
+		}
 	}
 	if err := e.Storage.Validate(); err != nil {
 		return prefixError("storage", err)
@@ -421,6 +431,9 @@ func observeGateRequirements(required []GateRequirement, available []GateEvidenc
 	for index, item := range required {
 		observation := GateObservation{Gate: item.Gate, State: GateStateUnknown, Classification: "required evidence missing"}
 		if evidence, exists := availableByKey[gateEvidenceKey(item.Gate)]; exists {
+			if !gateReferenceBindingsEqual(item.Gate, evidence.Gate) {
+				return nil, invalid("available", "mismatch", "available gate evidence does not match the required producer or evidence binding")
+			}
 			if item.Scope.Work != "" && !reflect.DeepEqual(item.Scope, evidence.Scope) {
 				return nil, invalid("available", "mismatch", "available gate evidence does not match the required scope")
 			}
@@ -437,6 +450,10 @@ func observeGateRequirements(required []GateRequirement, available []GateEvidenc
 
 func gateEvidenceKey(gate GateReference) string {
 	return string(gate.ID) + "\x00" + gate.Version + "\x00" + string(gate.Digest)
+}
+
+func gateReferenceBindingsEqual(expected, actual GateReference) bool {
+	return reflect.DeepEqual(expected.Producer, actual.Producer) && reflect.DeepEqual(expected.Evidence, actual.Evidence)
 }
 
 type SelectionEvidenceHeader struct {

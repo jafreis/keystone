@@ -102,6 +102,20 @@ func TestAttemptScopeBindsAuthoritativeJobAndAnalysisContracts(t *testing.T) {
 	if analysisScope.Plan != nil || analysisScope.OperationKey != "" || analysisScope.AnalysisID != analysis.ID() {
 		t.Fatal("analysis scope acquired job-only authority")
 	}
+	pendingInput := testAnalysisInput()
+	pendingInput.Kind = AnalysisKindRevisionResolution
+	pendingInput.Revision = testRevision(RevisionStatePending)
+	pending, err := NewAnalysisSpec(pendingInput)
+	if err != nil {
+		t.Fatalf("construct pending analysis: %v", err)
+	}
+	pendingScope, err := NewAnalysisAttemptScope(pending)
+	if err != nil {
+		t.Fatalf("construct pending analysis scope: %v", err)
+	}
+	if pendingScope.Revision.State != RevisionStatePending {
+		t.Fatal("pending analysis scope was rewritten")
+	}
 }
 
 func TestAttemptRejectsIdentityAndLeaseContradictions(t *testing.T) {

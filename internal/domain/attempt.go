@@ -115,6 +115,9 @@ type WorkScope struct {
 	Repository    RepositoryBinding      `json:"repository"`
 	Revision      RevisionContext        `json:"revision"`
 	Configuration ConfigurationReference `json:"configuration"`
+	Policy        PolicyReference        `json:"policy"`
+	Trust         TrustReference         `json:"trust"`
+	TargetVersion string                 `json:"target_version"`
 	Plan          *PlanReference         `json:"plan,omitempty"`
 	TargetDigest  ContentDigest          `json:"target_digest"`
 	OperationKey  OperationKey           `json:"operation_key,omitempty"`
@@ -139,6 +142,9 @@ func NewJobAttemptScope(plan ExecutionPlan, job JobSpec) (WorkScope, error) {
 		Repository:    input.Repository,
 		Revision:      plan.Revision(),
 		Configuration: input.Configuration,
+		Policy:        input.Policy,
+		Trust:         input.Trust,
+		TargetVersion: "v1",
 		Plan:          clonePointer(plan.Reference()),
 		TargetDigest:  job.Digest(),
 		OperationKey:  job.OperationKey(),
@@ -162,6 +168,9 @@ func NewAnalysisAttemptScope(analysis AnalysisSpec) (WorkScope, error) {
 		Repository:    input.Repository,
 		Revision:      input.Revision,
 		Configuration: input.Configuration,
+		Policy:        input.Policy,
+		Trust:         input.Trust,
+		TargetVersion: "v1",
 		TargetDigest:  analysis.Digest(),
 	}
 	if err := scope.Validate(); err != nil {
@@ -192,8 +201,20 @@ func (s WorkScope) Validate() error {
 	if err := s.Configuration.ValidateWithDigest(); err != nil {
 		return prefixError("configuration", err)
 	}
-	if !s.Revision.Configuration.Equal(s.Configuration) {
+	if !referencesAgree(string(s.Revision.Configuration.ID), s.Revision.Configuration.Version, s.Revision.Configuration.Digest, string(s.Configuration.ID), s.Configuration.Version, s.Configuration.Digest) {
 		return invalid("configuration", "mismatch", "work scope configuration differs from revision")
+	}
+	if err := s.Policy.Validate(); err != nil {
+		return prefixError("policy", err)
+	}
+	if err := s.Trust.Validate(); err != nil {
+		return prefixError("trust", err)
+	}
+	if !referencesAgree(string(s.Revision.Policy.ID), s.Revision.Policy.Version, s.Revision.Policy.Digest, string(s.Policy.ID), s.Policy.Version, s.Policy.Digest) {
+		return invalid("policy", "mismatch", "work scope policy differs from revision")
+	}
+	if err := validateVersion("target_version", s.TargetVersion); err != nil {
+		return err
 	}
 	if err := validateContractDigest("target_digest", string(s.TargetDigest)); err != nil {
 		return err

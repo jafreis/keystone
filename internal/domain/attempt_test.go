@@ -211,6 +211,18 @@ func TestAttemptActivePreconditionRequiresCurrentFenceAndUnexpiredTime(t *testin
 	}
 }
 
+func TestAttemptScopeComparisonUsesCanonicalRepresentation(t *testing.T) {
+	input := testAttemptInput(t)
+	input.Scope.Outputs = []OutputDeclaration{}
+	attempt, err := NewAttempt(input)
+	if err != nil {
+		t.Fatalf("construct attempt: %v", err)
+	}
+	if err := attempt.ValidateAgainstScope(input.Scope); err != nil {
+		t.Fatalf("equivalent empty and nil output representations differ: %v", err)
+	}
+}
+
 func TestCapacityReservationPreservesPreClaimAndCorrelatesActiveState(t *testing.T) {
 	input := testReservationInput(t, nil)
 	reservation, err := NewCapacityReservation(input)

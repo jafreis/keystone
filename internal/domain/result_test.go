@@ -81,6 +81,45 @@ func TestAttemptResultPreservesIndependentExecutionEvidenceAndTelemetryFacts(t *
 	}
 }
 
+func TestAttemptResultBindsGateEvidenceToItsProducer(t *testing.T) {
+	_, input := testResultInput(t, ExecutionProcessExited, int32Ptr(0), AttemptOutcomeSucceeded, FailureClassNone)
+	input.Gates[0].Producer.Number++
+	if _, err := NewAttemptResult(input); err == nil {
+		t.Fatal("result accepted gate evidence from another producer")
+	}
+}
+
+func TestAttemptResultRejectsNonSuccessZeroExitWithoutFailure(t *testing.T) {
+	for _, outcome := range []AttemptOutcome{
+		AttemptOutcomeCanceled,
+		AttemptOutcomeTimedOut,
+		AttemptOutcomeLeaseLost,
+		AttemptOutcomeNeedsReconciliation,
+	} {
+		t.Run(string(outcome), func(t *testing.T) {
+			_, input := testResultInput(t, ExecutionProcessExited, int32Ptr(0), outcome, FailureClassNone)
+			if _, err := NewAttemptResult(input); err == nil {
+				t.Fatal("non-success zero-exit result without failure classification accepted")
+			}
+		})
+	}
+}
+
+func TestAttemptResultNormalizesInputBeforeDigesting(t *testing.T) {
+	_, input := testResultInput(t, ExecutionProcessExited, int32Ptr(0), AttemptOutcomeSucceeded, FailureClassNone)
+	input.Artifacts = []ProducedArtifactEvidence{}
+	input.Reports = []ProducedReportEvidence{}
+	input.Consumed = []ConsumedArtifactReference{}
+	input.Gates = []GateEvidence{}
+	result, err := NewAttemptResult(input)
+	if err != nil {
+		t.Fatalf("construct normalized result: %v", err)
+	}
+	if err := result.Validate(); err != nil {
+		t.Fatalf("normalized result digest does not validate: %v", err)
+	}
+}
+
 func TestAttemptResultOutcomeMatrixRejectsContradictoryShapes(t *testing.T) {
 	_, valid := testResultInput(t, ExecutionProcessExited, int32Ptr(17), AttemptOutcomeFailed, FailureClassCommand)
 	cases := []struct {

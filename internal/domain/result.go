@@ -4,7 +4,6 @@ package domain
 import (
 	"bytes"
 	"encoding/json"
-	"reflect"
 	"time"
 	"unicode/utf8"
 )
@@ -302,6 +301,9 @@ func (i AttemptResultInput) Validate() error {
 		if err := gate.Validate(); err != nil {
 			return prefixError("gates", prefixError(indexPath(index), err))
 		}
+		if err := validateResultProducer(gate.Producer, gate.Scope, i.Attempt, i.Scope); err != nil {
+			return prefixError("gates", prefixError(indexPath(index), err))
+		}
 		key := gateEvidenceKey(gate.Gate)
 		if _, exists := seenGates[key]; exists {
 			return invalid("gates", "duplicate_value", "result contains duplicate gate evidence")
@@ -323,7 +325,7 @@ func (i AttemptResultInput) Validate() error {
 }
 
 func validateResultProducer(producer AttemptIdentity, scope WorkScope, expectedProducer AttemptIdentity, expectedScope WorkScope) error {
-	if !producer.Equal(expectedProducer) || !reflect.DeepEqual(scope, expectedScope) {
+	if !producer.Equal(expectedProducer) || !workScopesEqual(scope, expectedScope) {
 		return invalid("producer", "mismatch", "result evidence belongs to another producer")
 	}
 	return nil
@@ -340,8 +342,8 @@ func validateExecutionShape(i AttemptResultInput) error {
 		if *i.ExitCode != 0 && i.Failure == FailureClassNone {
 			return invalid("failure", "missing", "nonzero exit requires a failure classification")
 		}
-		if *i.ExitCode == 0 && i.Outcome == AttemptOutcomeFailed && i.Failure == FailureClassNone {
-			return invalid("failure", "missing", "failed result requires a failure classification")
+		if *i.ExitCode == 0 && i.Outcome != AttemptOutcomeSucceeded && i.Failure == FailureClassNone {
+			return invalid("failure", "missing", "non-success result requires a failure classification")
 		}
 		if *i.ExitCode == 0 && i.Outcome == AttemptOutcomeFailed && i.Failure == FailureClassCommand {
 			return invalid("failure", "inconsistent_value", "zero exit cannot be classified as a command failure")
@@ -368,19 +370,37 @@ type AttemptResult struct {
 	digest ContentDigest
 }
 
+func normalizeAttemptResultInput(input AttemptResultInput) AttemptResultInput {
+	if len(input.Artifacts) == 0 {
+		input.Artifacts = nil
+	}
+	if len(input.Reports) == 0 {
+		input.Reports = nil
+	}
+	if len(input.Consumed) == 0 {
+		input.Consumed = nil
+	}
+	if len(input.Gates) == 0 {
+		input.Gates = nil
+	}
+	return input
+}
+
 func NewAttemptResult(input AttemptResultInput) (AttemptResult, error) {
+	input = normalizeAttemptResultInput(input)
 	if err := input.Validate(); err != nil {
 		return AttemptResult{}, err
 	}
-	digest := sha256ContractDigest(attemptResultProjection(input))
-	data, err := json.Marshal(resultWire(input, digest))
+	normalized := cloneValue(input)
+	digest := sha256ContractDigest(attemptResultProjection(normalized))
+	data, err := json.Marshal(resultWire(normalized, digest))
 	if err != nil {
 		return AttemptResult{}, err
 	}
 	if len(data) > MaxAttemptResultBytes {
 		return AttemptResult{}, invalid("result", "too_large", "attempt result exceeds the supported size")
 	}
-	return AttemptResult{input: cloneValue(input), digest: digest}, nil
+	return AttemptResult{input: normalized, digest: digest}, nil
 }
 
 func (r AttemptResult) Input() AttemptResultInput { return cloneValue(r.input) }
@@ -403,7 +423,7 @@ func (r AttemptResult) ValidateAgainstAttempt(attempt Attempt) error {
 	if err := attempt.Validate(); err != nil {
 		return prefixError("attempt", err)
 	}
-	if !r.input.Attempt.Equal(attempt.Identity()) || !reflect.DeepEqual(r.input.Scope, attempt.Scope()) || r.input.Worker != attempt.Worker() || r.input.Class != attempt.Class() || r.input.Fence != attempt.Fence() || r.input.Reservation != attempt.Reservation() {
+	if !r.input.Attempt.Equal(attempt.Identity()) || !workScopesEqual(r.input.Scope, attempt.Scope()) || r.input.Worker != attempt.Worker() || r.input.Class != attempt.Class() || r.input.Fence != attempt.Fence() || r.input.Reservation != attempt.Reservation() {
 		return invalid("producer", "mismatch", "result does not belong to the supplied attempt")
 	}
 	return nil

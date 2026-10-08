@@ -165,7 +165,7 @@ func (e ProducedArtifactEvidence) ValidateAgainstAttempt(attempt Attempt) error 
 	if err := attempt.Validate(); err != nil {
 		return prefixError("attempt", err)
 	}
-	if !e.Producer.Equal(attempt.Identity()) || !reflect.DeepEqual(e.Scope, attempt.Scope()) {
+	if !e.Producer.Equal(attempt.Identity()) || !workScopesEqual(e.Scope, attempt.Scope()) {
 		return invalid("producer", "mismatch", "artifact evidence does not belong to the supplied attempt")
 	}
 	return nil
@@ -274,7 +274,7 @@ func (r ConsumedArtifactReference) ValidateAgainstProducer(attempt Attempt) erro
 	if err := attempt.Validate(); err != nil {
 		return prefixError("attempt", err)
 	}
-	if !r.Producer.Equal(attempt.Identity()) || !reflect.DeepEqual(r.Scope, attempt.Scope()) {
+	if !r.Producer.Equal(attempt.Identity()) || !workScopesEqual(r.Scope, attempt.Scope()) {
 		return invalid("producer", "mismatch", "consumed artifact is not pinned to the supplied producer")
 	}
 	return nil
@@ -434,7 +434,7 @@ func observeGateRequirements(required []GateRequirement, available []GateEvidenc
 			if !gateReferenceBindingsEqual(item.Gate, evidence.Gate) {
 				return nil, invalid("available", "mismatch", "available gate evidence does not match the required producer or evidence binding")
 			}
-			if item.Scope.Work != "" && !reflect.DeepEqual(item.Scope, evidence.Scope) {
+			if item.Scope.Work != "" && !workScopesEqual(item.Scope, evidence.Scope) {
 				return nil, invalid("available", "mismatch", "available gate evidence does not match the required scope")
 			}
 			observation.State = evidence.State

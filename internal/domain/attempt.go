@@ -2,9 +2,9 @@
 package domain
 
 import (
+	"bytes"
 	"encoding/json"
 	"math"
-	"reflect"
 	"time"
 )
 
@@ -419,10 +419,22 @@ func (a Attempt) ValidateAgainstScope(expected WorkScope) error {
 	if err := expected.Validate(); err != nil {
 		return prefixError("expected_scope", err)
 	}
-	if !reflect.DeepEqual(a.input.Scope, expected) {
+	if !workScopesEqual(a.input.Scope, expected) {
 		return invalid("scope", "mismatch", "attempt scope does not match the expected work scope")
 	}
 	return nil
+}
+
+func workScopesEqual(left, right WorkScope) bool {
+	leftBytes, err := json.Marshal(left)
+	if err != nil {
+		return false
+	}
+	rightBytes, err := json.Marshal(right)
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(leftBytes, rightBytes)
 }
 
 func (a Attempt) MarshalJSON() ([]byte, error) {

@@ -162,6 +162,24 @@ func TestAttemptResultDiagnosticsRequireRedactionContractAndStayBounded(t *testi
 	if _, err := NewAttemptResult(oversized); err == nil {
 		t.Fatal("oversized diagnostic entry accepted")
 	}
+	exactEntry := cloneValue(input)
+	exactEntry.Diagnostics.Entries[0].Text = strings.Repeat("x", MaxDiagnosticTextBytes)
+	if _, err := NewAttemptResult(exactEntry); err != nil {
+		t.Fatalf("diagnostic entry at its limit rejected: %v", err)
+	}
+	exactAggregate := cloneValue(input)
+	exactAggregate.Diagnostics.Entries = make([]DiagnosticEntry, MaxDiagnosticEntries)
+	for index := range exactAggregate.Diagnostics.Entries {
+		exactAggregate.Diagnostics.Entries[index] = DiagnosticEntry{Code: "entry", Text: strings.Repeat("x", MaxDiagnosticTotalBytes/MaxDiagnosticEntries)}
+	}
+	if _, err := NewAttemptResult(exactAggregate); err != nil {
+		t.Fatalf("diagnostic aggregate at its limit rejected: %v", err)
+	}
+	aboveAggregate := cloneValue(exactAggregate)
+	aboveAggregate.Diagnostics.Entries[0].Text += "x"
+	if _, err := NewAttemptResult(aboveAggregate); err == nil {
+		t.Fatal("diagnostic aggregate over its limit accepted")
+	}
 }
 
 func TestAttemptResultReplayIsExactAndDoesNotApplyActiveExpiry(t *testing.T) {

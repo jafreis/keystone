@@ -2,14 +2,15 @@
 
 # Keystone state and identity contracts
 
-- **Status:** Proposed backend contract with A1.04 domain implementation
+- **Status:** Proposed backend contract with A1.05 domain implementation
 - **Contract family:** `keystone.state`
-- **Document version:** `0.2.0`
+- **Document version:** `0.3.0`
 - **Fingerprint version defined here:** `F1` (`keystone/fingerprint/v1`)
-- **Scope:** Sprint 1, Tasks A1.01 and A1.04
-- **Implementation status:** Pure validated plan, job, analysis and work-reference
-contracts are present in `internal/domain`; no state adapter, queue, HTTP route or
-worker is present in this checkout.
+- **Scope:** Sprint 1, Tasks A1.01 and A1.04–A1.05
+- **Implementation status:** Pure validated plan, job, analysis, work-reference,
+attempt, reservation, evidence and result contracts are present in
+`internal/domain`; no state adapter, queue, HTTP route or worker is present in
+this checkout.
 
 This document is the normative, backend-neutral contract for identities,
 normalized replay comparison, immutable plans and transaction boundaries. It
@@ -423,6 +424,35 @@ publish messages, execute commands or authorize credentials. `ValidateAgainst`
 methods compare snapshots with separately supplied run and trusted-binding
 values; payload fields do not grant trust or execution authority.
 
+### 5.5 A1.05 attempt, evidence and result implementation boundary
+
+The A1.05 implementation in `internal/domain` adds private, validated
+snapshots for attempts, capacity reservations and terminal attempt results.
+`AttemptIdentity` keeps the run/work identity and positive ordinal separate
+from worker, fence, reservation, time and record-version fields. Job scopes are
+constructed from an authoritative plan and job; analysis scopes preserve both
+pending revision-resolution and resolved analysis contexts. Active checks use a
+separately supplied ownership binding and reject stale fences, versions,
+workers, classes, reservations and times. Reservation records describe
+capacity state and correlation; they do not allocate resources or imply a pod.
+
+Producer-bound artifact, report and gate records retain the producer attempt,
+run/repository/revision/configuration scope and structured storage identifiers.
+Consumed artifacts retain their original producer across retries. Passed gates
+require retained evidence, while absent required evidence is projected as
+`unknown` by a pure observation helper. Selection and telemetry headers carry
+only bounded identity, version, sequence and reference fields; they declare no
+payload support, execution authority or telemetry completion.
+
+`AttemptResult` preserves the exact signed 32-bit process exit observation,
+independent gate state, optional telemetry completeness and bounded diagnostics.
+Its canonical digest and strict codec support exact terminal replay comparison.
+Diagnostics require a worker-bound versioned redaction contract; the domain
+package validates that contract binding and shape but does not prove that a
+producer found every secret. Result validation and replay comparison are pure;
+they do not perform persistence, artifact verification, downloads, BEP
+parsing, metrics, retry scheduling, gate release or external mutation.
+
 ## 6. Schema compatibility and version history
 
 These versions have different purposes and must be recorded separately:
@@ -433,6 +463,7 @@ These versions have different purposes and must be recorded separately:
 | Fingerprint version (`F1`) | Normalized projection and digest construction | Compare under the stored version; do not silently rehash an old record. |
 | Plan schema version | Canonical plan fields, ordering, dependencies and digest | A plan consumer must support the recorded version or return an explicit incompatibility. |
 | Operation-key version | Semantic inputs to the logical operation key | Retries preserve the recorded version; a new version is a deliberate compatibility change. |
+| Attempt/result/evidence schema version | Attempt ownership, producer-bound evidence, terminal facts and reference-only extension headers | Accept only supported contract versions; preserve producer identity, fences, digests and independent observations during replay. |
 | Policy/configuration version | Admission, revision, trust, limits, mapping and gate decisions | Replay uses the stored decision; new requests use the then-authorized version. |
 | Storage schema version | Physical representation and conditional-write support | Migrations preserve identity, receipts, fences and history across restart/restore. |
 
@@ -666,6 +697,7 @@ claims completion.
 | `0.1.0` / 2026-10-03 | `CHG-001` | Recorded the A2.2 alignment prerequisite: raw-body digest is separate request evidence; normalized semantic content decides same-delivery replay. | No external milestone draft was edited. A2 implementation must resolve this before consuming the contract. |
 | `0.1.1` / 2026-10-03 | `CHG-002` | Corrected the admission-evidence retention rule to prohibit durable raw requests, signatures, authorization values and secrets. | Review correction aligned with A2's bounded authentication lifetime and credential-free durable records. `F1` and delivery identity are unchanged. |
 | `0.2.0` / 2026-10-05 | `A1.04` | Added versioned immutable plan, job, analysis and bounded work-reference domain contracts with typed operation/class validation, canonical projections, dependency/provenance checks and strict codecs. | Domain implementation is local and backend-neutral. Existing F1, event, revision and run rules remain unchanged; consumers must support the recorded v1 contract versions. |
+| `0.3.0` / 2026-10-08 | `A1.05` | Added bounded attempt and capacity-reservation records, producer-bound artifacts/reports/gates, unknown required-gate observations, reference-only selection/telemetry headers and immutable attempt results with exact exit, telemetry, diagnostics and replay contracts. | Pure domain implementation is local and backend-neutral. No allocator, lease lifecycle, artifact verifier, BEP parser, metrics consumer, retry scheduler, gate release or external adapter is present; future payload formats require their own versioned review. |
 
 An approved change must add a new history row and, when behavior changes, a
 new contract or fingerprint/schema version. Editing prose without preserving
@@ -673,15 +705,17 @@ the prior decision is not a rollback mechanism.
 
 ## 14. Scope and evidence boundary
 
-The A1.01 state contract remains backend-neutral. The A1.04 implementation adds
-pure domain records and does not implement:
+The A1.01 state contract remains backend-neutral. The A1.04–A1.05
+implementation adds pure domain records and does not implement:
 
 - database tables, migrations or storage adapters;
 - control-plane adapters beyond the pure `internal/domain` package;
 - webhook routes, provider authentication or policy evaluation;
 - queues, outbox loops, schedulers, workers, Kubernetes objects or leases;
 - Git/Bazel revision resolution, target detection or plan compilation;
-- cache writes, artifact retention, registry pushes or deployments;
+- cache writes, artifact verification/download or retention, registry pushes or deployments;
+- BEP parsing, metrics, retry scheduling, gate release or concrete selection/
+  telemetry payload interpretation;
 - live webhooks, queue publication, pod creation, external mutations or
   executable product tests.
 

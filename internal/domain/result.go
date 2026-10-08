@@ -266,10 +266,6 @@ func (i AttemptResultInput) Validate() error {
 	if err := i.Failure.Validate(); err != nil {
 		return err
 	}
-	if i.ExitCode != nil {
-		// int32 is the wire representation; accepting the pointer preserves
-		// the complete signed process exit value without Unix status clamping.
-	}
 	if err := validateExecutionShape(i); err != nil {
 		return err
 	}

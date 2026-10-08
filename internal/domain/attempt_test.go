@@ -127,6 +127,11 @@ func TestAttemptRejectsIdentityAndLeaseContradictions(t *testing.T) {
 	if valid.Identity().Number != 1 || valid.Scope().TargetDigest == "" {
 		t.Fatal("attempt did not retain its identity")
 	}
+	wrongScope := input.Scope
+	wrongScope.TargetDigest = strictDigest('b')
+	if err := valid.ValidateAgainstScope(wrongScope); err == nil {
+		t.Fatal("attempt accepted a mismatched target digest")
+	}
 
 	cases := []struct {
 		name   string
@@ -187,7 +192,7 @@ func TestAttemptActivePreconditionRequiresCurrentFenceAndUnexpiredTime(t *testin
 	}
 	_, heartbeat, expiry := testAttemptTimes()
 	binding := AttemptOwnershipBinding{
-		Identity: input.Identity, Worker: input.Worker, Class: input.Class,
+		Identity: input.Identity, Scope: func() *WorkScope { scope := input.Scope; return &scope }(), Worker: input.Worker, Class: input.Class,
 		Fence: input.Fence, Reservation: input.Reservation,
 		RecordVersion: input.RecordVersion, CancellationVersion: input.CancellationVersion,
 		Now: heartbeat,

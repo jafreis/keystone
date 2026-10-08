@@ -4,6 +4,7 @@ package domain
 import (
 	"encoding/json"
 	"math"
+	"reflect"
 	"time"
 )
 
@@ -380,6 +381,19 @@ func (a Attempt) Fence() FenceToken          { return a.input.Fence }
 func (a Attempt) Reservation() ReservationID { return a.input.Reservation }
 func (a Attempt) Validate() error            { return a.input.Validate() }
 
+func (a Attempt) ValidateAgainstScope(expected WorkScope) error {
+	if err := a.Validate(); err != nil {
+		return err
+	}
+	if err := expected.Validate(); err != nil {
+		return prefixError("expected_scope", err)
+	}
+	if !reflect.DeepEqual(a.input.Scope, expected) {
+		return invalid("scope", "mismatch", "attempt scope does not match the expected work scope")
+	}
+	return nil
+}
+
 func (a Attempt) MarshalJSON() ([]byte, error) {
 	if err := a.Validate(); err != nil {
 		return nil, err
@@ -418,6 +432,7 @@ func DecodeAttempt(data []byte) (Attempt, error) {
 
 type AttemptOwnershipBinding struct {
 	Identity            AttemptIdentity
+	Scope               *WorkScope
 	Worker              WorkerID
 	Class               ExecutionClass
 	Fence               FenceToken
@@ -451,6 +466,11 @@ func (a Attempt) ValidateActive(binding AttemptOwnershipBinding) error {
 	}
 	if !a.Identity().Equal(binding.Identity) || a.Worker() != binding.Worker || a.Class() != binding.Class || a.Fence() != binding.Fence || a.Reservation() != binding.Reservation {
 		return invalid("ownership", "mismatch", "active ownership binding does not match attempt")
+	}
+	if binding.Scope != nil {
+		if err := a.ValidateAgainstScope(*binding.Scope); err != nil {
+			return prefixError("ownership.scope", err)
+		}
 	}
 	if a.input.RecordVersion != binding.RecordVersion || a.input.CancellationVersion != binding.CancellationVersion {
 		return invalid("ownership", "stale", "active ownership versions do not match attempt")

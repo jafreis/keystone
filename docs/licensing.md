@@ -80,9 +80,12 @@ may carry obligations independent of Keystone. Keep remote action/CAS policy,
 repository dependency caching and third-party artifact licensing as separate
 reviews.
 
-The [Spotify Target Determinator fork](https://github.com/spotify/target-determinator) (Apache-2.0) is the
-selected change detector but is not yet a dependency or bundled artifact in this checkout. Its exact pinned
-release, NOTICE terms and binary distribution in the analysis-class image must be reviewed when it is added.
+The
+[Spotify Target Determinator fork](https://github.com/spotify/target-determinator)
+(Apache-2.0) is the selected change detector but is not yet a dependency or
+bundled artifact in this checkout. Its exact pinned release, NOTICE terms and
+binary distribution in the analysis-class image must be reviewed when it is
+added.
 
 ## Release gate
 

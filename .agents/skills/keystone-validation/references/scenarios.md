@@ -40,12 +40,12 @@ before documenting a command.
 
 ## Sprint 3 — hybrid target selection and plan merge
 
-Define graph configuration, base/HEAD availability and the selected target
-determinant's limits. Graph hashing or impacted-target tooling may require
-configured Bazel analysis; do not describe it as query-free or exact for every
-configuration without evidence. Exercise additions, modifications, renames,
-deletions, shared dependencies, BUILD/bzl/module/toolchain changes and
-detector failure.
+Define graph configuration, base/HEAD availability and the pinned Target
+Determinator release's limits. Graph hashing or impacted-target tooling may
+require configured Bazel analysis; do not describe it as query-free or exact
+for every configuration without evidence. Exercise additions, modifications,
+renames, deletions, shared dependencies, BUILD/bzl/module/toolchain changes
+and detector failure.
 
 Keep out-of-tree mapping configurable rather than assuming infra/ paths.
 Exercise safe path handling, mapping precedence, unknown paths, infrastructure-

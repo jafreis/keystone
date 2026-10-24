@@ -677,7 +677,7 @@ consuming implementation or determine its evidence:
 |---|---|---|
 | `D1` | A0 integration owner; A1 adapter | State backend and broker, transaction/conditional-write guarantees, durability, retention, failover/restore and uncertain-commit behavior. |
 | `D2` | A2 policy owner | Provider instance/integration model, supported events/actions, revocation and rotation, replay retention, and captured-body replay under a different delivery ID. |
-| `D3` | A1/A2/A3 implementers | Pinned Go, provider, broker, Kubernetes, detector and rules/tool versions. |
+| `D3` | A1/A2/A3 implementers | Pinned Go, provider, broker, Kubernetes, Spotify Target Determinator fork and rules/tool versions. |
 | `D4` | A2 policy and revision resolver | Exact push/PR/initial/force/deletion/base strategies and required object-resolution evidence. |
 | `D7` | A1/A3 capacity owner | Numeric quota, resource, concurrency, retry, lease, timeout, expiry and retention limits with authoritative time semantics. |
 | `D9` / `D11` | Deployment and gate owners | Required gates, destination approval, external receipts, environment concurrency and deployment reconciliation. |
